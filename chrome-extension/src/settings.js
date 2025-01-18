@@ -36,6 +36,28 @@ function hexToArrayBuffer(hexString) {
     return new Uint8Array(integers).buffer;
 }
 
+// Import key from hex string
+async function importKeyFromHex(hexString, isPublic = true) {
+    try {
+        const keyData = hexToArrayBuffer(hexString);
+        if (!keyData) return null;
+
+        return await window.crypto.subtle.importKey(
+            isPublic ? "raw" : "pkcs8",
+            keyData,
+            {
+                name: "ECDSA",
+                namedCurve: "P-256"
+            },
+            true,
+            isPublic ? ["verify"] : ["sign"]
+        );
+    } catch (error) {
+        console.error('Error importing key:', error);
+        return null;
+    }
+}
+
 // Load existing settings when page opens
 document.addEventListener('DOMContentLoaded', async () => {
     chrome.storage.sync.get([
@@ -49,14 +71,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     ], async (result) => {
         // Import stored keys if they exist
         if (result.privateKey && result.publicKey) {
-            window.cryptoKeys = {
-                privateKey: result.privateKey,
-                publicKey: result.publicKey
-            };
+            const importedprivateKey = await importKeyFromHex(result.privateKey, false);
+            const importedpublicKey = await importKeyFromHex(result.publicKey, true);
+
+            if (privateKey && publicKey) {
+                // Store CryptoKey objects in window for later use
+                window.cryptoKeys = {
+                    privateKey: importedprivateKey,
+                    publicKey: importedpublicKey
+                };
+            }
         } else {
             const keys = await generateKeypair();
-            document.getElementById('privateKey').value = keys.privateKey;
-            document.getElementById('publicKey').value = keys.publicKey;
 
             // Store CryptoKey objects
             window.cryptoKeys = {
@@ -64,6 +90,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 publicKey: keys.privateKey
             };
         }
+
+        console.log(window.cryptoKeys.publicKey);
 
         // Export keys to hex format for display
         const exportedPublic = await window.crypto.subtle.exportKey("raw", window.cryptoKeys.publicKey);
@@ -200,10 +228,14 @@ document.getElementById('keyFileInput').addEventListener('change', async (event)
 });
 
 // Save settings
-document.getElementById('saveSettings').addEventListener('click', () => {
+document.getElementById('saveSettings').addEventListener('click', async () => {
+    // Export keys to hex format for display
+    const exportedPublic = await window.crypto.subtle.exportKey("raw", window.cryptoKeys.publicKey);
+    const exportedPrivate = await window.crypto.subtle.exportKey("pkcs8", window.cryptoKeys.privateKey);
+
     const settings = {
-        privateKey: window.cryptoKeys.privateKey,
-        publicKey: window.cryptoKeys.publicKey,
+        privateKey: arrayBufferToHex(exportedPrivate),
+        publicKey: arrayBufferToHex(exportedPublic),
         exampleDropdown: document.getElementById('exampleDropdown').value,
         exampleSwitch: document.getElementById('exampleSwitch').checked,
         showDropdownSwitch: document.getElementById('showDropdownSwitch').checked,
