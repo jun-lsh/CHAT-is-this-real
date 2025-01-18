@@ -1,8 +1,7 @@
 name = "backend"
 main = "src/index.ts"
 compatibility_date = "2025-01-18"
-
-# compatibility_flags = [ "nodejs_compat" ]
+compatibility_flags = [ "nodejs_compat" ]
 
 # [vars]
 # MY_VAR = "my-variable"
@@ -18,8 +17,9 @@ compatibility_date = "2025-01-18"
 [[d1_databases]]
 binding = "D1"
 database_name = "note_anything_db"
-database_id = "596ed2a2-c0ff-4c47-9f38-6546bc573381"
-migrations_dir = "drizzle/migrations"
+database_id = "2c7d47e7-53e8-401e-90e7-5d2936866f2a"
+migrations_dir = "drizzle"
+
 
 
 
