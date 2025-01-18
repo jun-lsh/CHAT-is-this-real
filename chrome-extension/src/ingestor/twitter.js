@@ -4,7 +4,7 @@
 const observerConfig = {
     childList: true,     // Watch for children being added or removed
     subtree: true,       // Watch all descendants, not just immediate children
-    attributes: false,   // Don't watch for attribute changes
+    attributes: true,   // Don't watch for attribute changes
 };
 
 // Keep track of active observers
@@ -99,14 +99,24 @@ async function processTweetElements(tweetElementList) {
     let tweetIdList = [];
     let tweetElementMap = new Map();
 
-    tweetElementList.forEach(tweetElement => {
+    tweetElementList.forEach(async tweetElement => {
         if (isTweetElement(tweetElement)) {
             let result = processTweet(tweetElement);
             if (result) {
                 console.log(result)
+                
                 var buttonDiv = tweetElement.querySelector('[data-testid="caret"]')
-                for(var _ = 0; _ < 4; _++) buttonDiv = buttonDiv.parentNode;
+                var retries = 0
+                // while(!buttonDiv){
+                //     await new Promise(resolve => setTimeout(resolve, 500));
+                //     retries++
+                //     if (retries > 5) break
+                // }
+                for(var _ = 0; _ < 4; _++) {
+                    buttonDiv = buttonDiv.parentNode;
+                }
                 addReportButtonToTweet(buttonDiv, result);
+                tweetElement.dataset.processed = 'true';
                 tweetIdList.push(result.statusId);
                 tweetElementMap.set(result.statusId,
                     {
@@ -144,7 +154,7 @@ function processTweet(tweetElement) {
     }
 
     // Mark the tweet as processed to avoid duplicates
-    tweetElement.dataset.processed = 'true';
+    
 
     // Extract username (handle)
     const usernameElement = tweetElement.querySelector('div[data-testid="User-Name"] a');
@@ -217,14 +227,14 @@ function cleanupObservers() {
 }
 
 // Initialize observers for containers
-function initializeObservers() {
+async function initializeObservers() {
     const selectors = [
         '[data-testid="primaryColumn"]',
         '[data-testid="UserProfileTimeline"]'
     ];
     
     cleanupObservers();
-    
+    await new Promise(resolve => setTimeout(resolve, 1500)); // fuck you
     selectors.forEach(selector => {
         const container = document.querySelector(selector);
         if (container) {
@@ -234,10 +244,10 @@ function initializeObservers() {
             console.log(`Tweet monitor initialized for ${selector}`);
             
             // Process any existing tweets
-            // const existingTweets = container.querySelectorAll('article');
-            // processTweetElements(existingTweets).then(r => {
-            //     console.log(`existing tweets checked ${existingTweets.length}`);
-            // });
+            const existingTweets = container.querySelectorAll('article');
+            processTweetElements(existingTweets).then(r => {
+                console.log(`existing tweets checked ${existingTweets.length}`);
+            });
         }
     });
     
