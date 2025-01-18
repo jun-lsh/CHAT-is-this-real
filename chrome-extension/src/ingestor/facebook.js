@@ -10,7 +10,7 @@ const observerConfig = {
 // Keep track of active observers
 let activeObservers = [];
 
-function addTextBoxUnderTweet(tweetNode, text) {
+function addTextBoxUnderTweet(tweetNode, text, offset = false) {
     // console.log("Called addTextBoxUnderTweet");
     // Create a new div for our text box
     // if(tweetNode.parentNode.childNodes.first == tweetNode){console.log("first kid")}
@@ -32,24 +32,34 @@ function addTextBoxUnderTweet(tweetNode, text) {
     // console.log(tweetNode)
     // Add the text content
     textBox.textContent = text;
-    var curr = tweetNode.childNodes[0]
-    
-    for(var _ = 0; _ < 11; _++) {
+    if (!offset) {
+        var curr = tweetNode.childNodes[0]
+        for (var _ = 0; _ < 11; _++) {
 
-        if(curr.childNodes.length == 1) curr = curr.childNodes[0]
-        else curr = curr.childNodes[1]
+            if (curr.childNodes.length == 1) curr = curr.childNodes[0]
+            else curr = curr.childNodes[1]
+        }
+        if (curr.childNodes.length > 1) return
+        curr.appendChild(textBox);
+    } else {
+        var curr = tweetNode.childNodes[0]
+        for (var _ = 0; _ < 8; _++) {
+            curr = curr.childNodes[0]
+        }
+        console.log(curr)
+        if (curr.childNodes.length > 1) return
+        curr.appendChild(textBox);
     }
-    if(curr.childNodes.length > 1) return
-    curr.appendChild(textBox);
+
 
 }
 
-function addReportButtonToTweet(tweetNode, tweetInfo){
+async function addReportButtonToTweet(tweetNode, tweetInfo, offset = false) {
     const button = document.createElement("button");
     // <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
     //   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.5 11.5 11 13l4-3.5M12 20a16.405 16.405 0 0 1-5.092-5.804A16.694 16.694 0 0 1 5 6.666L12 4l7 2.667a16.695 16.695 0 0 1-1.908 7.529A16.406 16.406 0 0 1 12 20Z"/>
     // </svg>
-    
+
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("width", "20");
     svg.setAttribute("height", "20");
@@ -97,28 +107,37 @@ function addReportButtonToTweet(tweetNode, tweetInfo){
       }
     `;
     document.head.appendChild(style);
-    
+
     button.className = 'custom-button';
     button.appendChild(svg);
-
+    console.log("Info", tweetInfo)
     const showPopup = createFormPopup(tweetInfo);
     button.addEventListener("click", showPopup);
 
 
     var curr = tweetNode.childNodes[0]
-    
-    for(var _ = 0; _ < 12; _++) {
-        // console.log(_)
-        // if(curr.childNodes.length == 0){
-        //     console.log(curr)
-        // }
-        if(curr.childNodes.length != 1 && _ == 1) curr = curr.childNodes[1]
-        else curr = curr.childNodes[0]
-        // curr = curr.childNodes[0]
-    }
 
-    curr = curr.childNodes[12].childNodes[0].childNodes[0].childNodes[1].childNodes[0]
-    if(curr.childNodes.length > 4) return
+    if (!offset) {
+        for (var _ = 0; _ < 12; _++) {
+            // console.log(_)
+            // if(curr.childNodes.length == 0){
+            //     console.log(curr)
+            // }
+            if (curr.childNodes.length != 1 && _ == 1) curr = curr.childNodes[1]
+            else curr = curr.childNodes[0]
+            // curr = curr.childNodes[0]
+        }
+
+        curr = curr.childNodes[12].childNodes[0].childNodes[0].childNodes[1].childNodes[0]
+        if (curr.childNodes.length > 4) return
+    } else {
+        for (var _ = 0; _ < 9; _++) {
+            curr = curr.childNodes[0]
+        }
+        console.log(curr)
+        curr = curr.childNodes[12].childNodes[0].childNodes[0].childNodes[1].childNodes[0]
+        if (curr.childNodes.length > 3) return
+    }
 
     let buttonContainer = document.createElement('div');
 
@@ -129,17 +148,19 @@ function addReportButtonToTweet(tweetNode, tweetInfo){
     buttonContainer.style.alignItems = "center";
 
     buttonContainer.appendChild(button);
+    // await new Promise(resolve => setTimeout(resolve, 1500));
+    // if (curr.childNodes.length > 4) return
     curr.appendChild(buttonContainer);
     // buttonNode
 }
-
 
 function postDetails(href) {
     // Pattern matchers for different URL types
     const patterns = {
         posts: /\/posts\/([^?]+)/,
         video: /watch\/\?v=([^&]+)/,
-        group: /groups\/([^\/]+)\/user\/([^\/]+)/,
+        groupWithUser: /groups\/([^\/]+)\/user\/([^\/]+)/,
+        groupWithPermalink: /groups\/([^\/\?]+).*?multi_permalinks=([^&]+)/,
         permalink: /story_fbid=([^&]+).*?&id=([^&]+)/
     };
 
@@ -158,9 +179,15 @@ function postDetails(href) {
     }
     else if (href.includes('/groups/')) {
         type = 'groups';
-        const matches = href.match(patterns.group);
-        postId = matches[1];    // group id
-        username = matches[2];   // user id
+        if (href.includes('/user/')) {
+            const matches = href.match(patterns.groupWithUser);
+            postId = matches[1];    // group id
+            username = matches[2];   // user id
+        } else {
+            const matches = href.match(patterns.groupWithPermalink);
+            username = matches[1];   // group id
+            postId = matches[2];     // multi_permalinks value
+        }
     }
     else if (href.includes('permalink.php')) {
         type = 'permalink';
@@ -179,7 +206,7 @@ function postDetails(href) {
 }
 
 // Function to process new tweets
-async function processTweet(tweetElement) {
+async function processTweet(tweetElement, offset = false) {
     const MAX_RETRIES = 5;
     const RETRY_DELAY = 1000;
 
@@ -187,7 +214,14 @@ async function processTweet(tweetElement) {
         a.hasAttribute('attributionsrc') &&
         a.classList.contains('x1i10hfl') &&
         a.getAttribute('role') === 'link' &&
-        a.getAttribute('target') === '_blank'
+        (a.getAttribute('target') === '_blank')
+    );
+
+    const findTargetAnchor2 = () => Array.from(tweetElement.getElementsByTagName('a')).find(a =>
+        a.hasAttribute('attributionsrc') &&
+        a.classList.contains('x1i10hfl') &&
+        a.getAttribute('role') === 'link'
+        && a.getAttribute('href').includes("posts")
     );
 
     var targetAnchor = findTargetAnchor();
@@ -200,13 +234,39 @@ async function processTweet(tweetElement) {
         });
 
         targetAnchor.dispatchEvent(event);
-        // console.log(targetAnchor)
-        await new Promise(resolve => setTimeout(resolve, 200));
-        addTextBoxUnderTweet(
-            tweetElement,
-            "^ THIS POST IS 100% NOT MISINFORMATION!! ^"
-        );
-        addReportButtonToTweet(tweetElement, postDetails(targetAnchor.getAttribute('href')))
+
+        var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              if (mutation.type === "attributes") {
+                console.log("attributes changed");
+                console.log(mutation.target.getAttribute('href'))
+                var deets = postDetails(mutation.target.getAttribute('href'))
+                if(deets){
+                    observer.disconnect()
+                    console.log("Printing", deets)
+                    addTextBoxUnderTweet(
+                        tweetElement,
+                        "^ THIS POST IS 100% NOT MISINFORMATION!! ^",
+                        offset
+                    );
+                    addReportButtonToTweet(tweetElement, deets, offset)
+                    
+                }
+              }
+              
+            //   console.log(mutation.target);
+            });
+          });
+          
+        observer.observe(targetAnchor, {
+        attributes: true //configure it to listen to attribute changes
+        });
+
+        // console.log(targetAnchor.parentNode.childNodes[0].getAttribute('href'))
+        // targetAnchor = findTargetAnchor2()
+        
+        // await new Promise(resolve => setTimeout(resolve, 200));
+        
     } else {
         var observer = new MutationObserver(function (mutations) {
             mutations.forEach(async function (mutation) {
@@ -223,29 +283,46 @@ async function processTweet(tweetElement) {
 
                         targetAnchor.dispatchEvent(event);
                         // console.log(targetAnchor)
-                        if(!targetAnchor.getAttribute('href').includes("l.facebook.com")){
-                            addTextBoxUnderTweet(
-                                tweetElement,
-                                "^ THIS POST IS 100% NOT MISINFORMATION!! ^"
-                            );
-                            addReportButtonToTweet(tweetElement, postDetails(targetAnchor.getAttribute('href')))
-                            observer.disconnect();
-                        }
+                        // if (!targetAnchor.getAttribute('href').includes("l.facebook.com")) {
+                        //     addTextBoxUnderTweet(
+                        //         tweetElement,
+                        //         "^ THIS POST IS 100% NOT MISINFORMATION!! ^",
+                        //         offset
+                        //     );
+                        //     addReportButtonToTweet(tweetElement, postDetails(targetAnchor.getAttribute('href')), offset)
+                        //     observer.disconnect();
+                        // }
+                        var observer2 = new MutationObserver(function(mutations) {
+                            mutations.forEach(function(mutation) {
+                              if (mutation.type === "attributes") {
+                                console.log("attributes changed");
+                                console.log(mutation.target.getAttribute('href'))
+                                var deets = postDetails(mutation.target.getAttribute('href'))
+                                if(deets){
+                                    console.log(deets)
+                                    addTextBoxUnderTweet(
+                                        tweetElement,
+                                        "^ THIS POST IS 100% NOT MISINFORMATION!! ^",
+                                        offset
+                                    );
+                                    addReportButtonToTweet(tweetElement, deets, offset)
+                                    observer.disconnect()
+                                }
+                              }
+                              
+                            //   console.log(mutation.target);
+                            });
+                          });
+                          
+                        observer2.observe(targetAnchor, {
+                        attributes: true //configure it to listen to attribute changes
+                        });
                     }
                 }
             });
         });
 
         if (targetAnchor) observer.disconnect()
-        //   while (!targetAnchor && retryCount < MAX_RETRIES) {
-        //     if (!targetAnchor) {
-        //       console.log(`Attempt ${retryCount + 1}/${MAX_RETRIES}: Anchor not found, retrying in ${RETRY_DELAY}ms...`);
-        //       await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-        //       retryCount++;
-        //     }
-        //   }
-        //   observer.disconnect()
-        // configuration of the observer:
         var config = { attributes: true, childList: true, characterData: true, subtree: true };
 
         // pass in the target node, as well as the observer options
@@ -257,7 +334,16 @@ async function processTweet(tweetElement) {
 // Function to identify tweet elements
 function isTweetElement(element) {
     // Twitter-specific selectors for both timeline and profile tweets
-    return element.matches('[class="x1lliihq"]');
+    if (element.matches('[class="x1lliihq"]')) return true
+    else {
+        var curr = element.childNodes[0]
+        for (var _ = 0; _ < 9; _++) {
+            if(!curr) return false
+            if (!curr.childNodes) return false
+            curr = curr.childNodes[0]
+        }
+        return (curr.childNodes.length > 1)
+    }
 }
 
 // Callback function for the observer
@@ -296,6 +382,41 @@ function handleMutations(mutations) {
     }
 }
 
+function handleMutations_functored(mutations) {
+    for (const mutation of mutations) {
+        // Check added nodes
+        if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+            mutation.addedNodes.forEach((node) => {
+                // Check if the node is an element and matches our tweet criteria
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    // If the node itself is a tweet
+                    if (isTweetElement(node)) {
+                        processTweet(node, true);
+                    }
+
+                    // Check children for tweets (in case tweets are nested in added containers)
+                    const tweetElements = node.querySelectorAll("div");
+                    tweetElements.forEach((tweetElement) => {
+                        if (isTweetElement(tweetElement)) {
+                            processTweet(tweetElement, true);
+                        }
+                    });
+                }
+            });
+        }
+
+        if (mutation.removedNodes && mutation.removedNodes.length > 0) {
+            var target = mutation.target
+            if (target.nodeType == Node.ELEMENT_NODE) {
+                if (isTweetElement(target)) {
+                    target.parentNode.removeChild(target)
+                }
+            }
+        }
+
+    }
+}
+
 // Clean up existing observers
 function cleanupObservers() {
     activeObservers.forEach((observer) => observer.disconnect());
@@ -316,10 +437,10 @@ async function initializeObservers() {
             observer.observe(container, observerConfig);
             activeObservers.push(observer);
             console.log(`Tweet monitor initialized for ${container}`);
-                    
+
             // Process any existing tweets
             var existingTweets = container.querySelectorAll("[class='x1lliihq']");
-            
+
             existingTweets.forEach((tweet) => {
                 if (isTweetElement(tweet)) {
                     processTweet(tweet);
@@ -331,6 +452,49 @@ async function initializeObservers() {
 
             return
         }
+    } else {
+        elems = document.querySelectorAll("[class='x1yztbdb']");
+        var divWithoutClass = null
+        elems.forEach((elem) => {
+            // console.log(elem)
+            var container = elem.parentNode
+            const findDivWithoutClass = (parentDiv) => {
+                // Convert HTMLCollection to Array for easier filtering
+                const children = Array.from(parentDiv.children);
+
+                // Find the first div that has no class attribute
+                return children.find(child =>
+                    child.tagName.toLowerCase() === 'div' &&
+                    !child.hasAttribute('class') && child.childNodes.length > 1
+                );
+            };
+            divWithoutClass = findDivWithoutClass(container);
+        })
+        if (divWithoutClass) {
+            console.log(divWithoutClass)
+
+            const observer = new MutationObserver(handleMutations_functored);
+            observer.observe(divWithoutClass, {
+                childList: true, // Watch for children being added or removed
+                subtree: false, // Watch all descendants, not just immediate children
+                attributes: false, // Don't watch for attribute changes
+            });
+            activeObservers.push(observer);
+            console.log(`Tweet monitor initialized for ${divWithoutClass}`);
+
+            // // Process any existing tweets
+            var existingTweets = divWithoutClass.querySelectorAll("div");
+
+            existingTweets.forEach((tweet) => {
+                if (isTweetElement(tweet)) {
+                    console.log(tweet)
+                    processTweet(tweet, true)
+                }
+            });
+
+            return
+        }
+
     }
 
 

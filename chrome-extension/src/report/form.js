@@ -151,6 +151,7 @@ function createFormPopup(reportInfo) {
 
     async function showPopup() {
         const postHash = await generateHash()
+        console.log(postHash)
         const response = await apiRequestServiceWorker('GET', '/reports/' + postHash);
         console.log(response)
         // Ensure styles and HTML are injected before showing
