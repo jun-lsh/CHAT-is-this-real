@@ -47,7 +47,12 @@ function createFormPopup(reportInfo) {
 
     async function setValues(siteHash){
         const repUrl = document.getElementById("reportName");
-        repUrl.innerHTML = "Reporting: " + siteHash
+        if(reportInfo['site'] == 'fb') repUrl.innerHTML = "Reporting: " + reportInfo['username'] + "'s post on Facebook"
+        else if(reportInfo['site'] == 'tw') repUrl.innerHTML = "Reporting: " + reportInfo['username'] + "'s post on Twitter"
+        else if(reportInfo['site'] == 'yt') repUrl.innerHTML = "Reporting: " + reportInfo['username']
+
+        const repHash = document.getElementById("reportHash");
+        repHash.innerHTML = "Hash: " + siteHash
     }
 
     function setupEventListeners() {
@@ -134,19 +139,85 @@ function createFormPopup(reportInfo) {
     }
 
     function createReportView(report) {
-        let view = document.createElement("div")
-        view.style.paddingBottom = "8px"
 
-        console.log(report)
-        let title = document.createElement("h2")
-        title.textContent = "Report about"
-        view.append(title)
+        const card = document.createElement('div');
+        card.style.padding = '16px';
+        card.style.border = '1px solid #ddd';
+        card.style.borderRadius = '8px';
+        card.style.maxWidth = '600px';
+        card.style.margin = '20px';
+        card.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+    
+        // Create top row container
+        const topRow = document.createElement('div');
+        topRow.style.display = 'flex';
+        topRow.style.justifyContent = 'space-between';
+        topRow.style.alignItems = 'center';
+        topRow.style.marginBottom = '12px';
+    
+        // Create title
+        const titleElement = document.createElement('h2');
+        titleElement.textContent = "Reported for " + report["report_type"];
+        titleElement.style.margin = '0';
+        titleElement.style.fontSize = '20px';
+    
+        // Create voting container
+        const votingContainer = document.createElement('div');
+        votingContainer.style.display = 'flex';
+        votingContainer.style.alignItems = 'center';
+        votingContainer.style.gap = '8px';
+    
+        // Create vote counter
+        const voteCount = document.createElement('span');
+        let votes = report['upvote'] - report['downvote'];
+        voteCount.textContent = votes;
+        voteCount.style.margin = '0 8px';
+    
+        // Create upvote button
+        const upvoteBtn = document.createElement('button');
+        upvoteBtn.textContent = '↑';
+        upvoteBtn.style.padding = '4px 8px';
+        upvoteBtn.style.border = '1px solid #ddd';
+        upvoteBtn.style.borderRadius = '4px';
+        upvoteBtn.style.cursor = 'pointer';
+        upvoteBtn.style.backgroundColor = '#f0f0f0';
+        upvoteBtn.addEventListener('click', () => {
+            votes++;
+            voteCount.textContent = votes;
+        });
+    
+        // Create downvote button
+        const downvoteBtn = document.createElement('button');
+        downvoteBtn.textContent = '↓';
+        downvoteBtn.style.padding = '4px 8px';
+        downvoteBtn.style.border = '1px solid #ddd';
+        downvoteBtn.style.borderRadius = '4px';
+        downvoteBtn.style.cursor = 'pointer';
+        downvoteBtn.style.backgroundColor = '#f0f0f0';
+        downvoteBtn.addEventListener('click', () => {
+            votes--;
+            voteCount.textContent = votes;
+        });
+    
+        // Create description
+        const descElement = document.createElement('p');
+        descElement.textContent = "Reasoning: " + report["report_text"];
+        descElement.style.margin = '0';
+        descElement.style.lineHeight = '1.5';
+        descElement.style.color = '#666';
+    
+        // Assemble the components
+        votingContainer.appendChild(upvoteBtn);
+        votingContainer.appendChild(voteCount);
+        votingContainer.appendChild(downvoteBtn);
+    
+        topRow.appendChild(titleElement);
+        topRow.appendChild(votingContainer);
+    
+        card.appendChild(topRow);
+        card.appendChild(descElement);
 
-        let span = document.createElement("span");
-        span.textContent = "" + report["report_text"];
-        view.appendChild(span)
-
-        return view
+        return card
     }
 
     async function showPopup() {
