@@ -1,0 +1,33 @@
+<div id="myFormPopup" class="form-popup">
+    <div class="form-container">
+        <button id="closePopup" class="close-button">&times;</button>
+        
+        <div id="page1" class="form-page">
+            <h2>New Report</h2>
+            <h3 id="reportUrl">Reporting:</h3>
+            <div class="form-group">
+                <label for="reportType">Report Type:</label>
+                <select name="reportType" id="reportType">
+                    <option value="misinformation">Misinformation</option>
+                    <option value="trigger">Triggering Content</option>
+                    <option value="slop">AI Content</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <button id="nextButton" class="btn btn-next">Next</button>
+            </div>
+        </div>
+
+        <div id="page2" class="form-page hidden">
+            <h2>Page 2</h2>
+            <div class="form-group">
+                <label for="messageInput">Message:</label>
+                <textarea id="messageInput" rows="4"></textarea>
+            </div>
+            <div class="button-group">
+                <button id="prevButton" class="btn btn-prev">Previous</button>
+                <button id="submitButton" class="btn btn-submit">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>

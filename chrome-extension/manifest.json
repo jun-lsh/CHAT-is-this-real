@@ -6,10 +6,19 @@
       "storage",
       "scripting"
     ],
+    "web_accessible_resources": [
+      {
+        "resources": [
+        "src/report/form.html",
+        "src/report/form.css"
+        ],
+        "matches": ["<all_urls>"]
+      }
+    ],
     "content_scripts": [
       {
         "matches": ["https://www.x.com/*", "https://x.com/*"],
-        "js": ["./src/ingestor/utils.js", "./src/ingestor/twitter.js"],
+        "js": ["./src/ingestor/utils.js", "./src/ingestor/twitter.js", "./src/report/form.js"],
         "run_at": "document_start"
       },
       {
