@@ -23,16 +23,16 @@
     "content_scripts": [
       {
         "matches": ["https://www.x.com/*", "https://x.com/*"],
-        "js": ["./src/report/form.js", "./src/ingestor/utils.js", "./src/ingestor/twitter.js"],
+        "js": ["./src/ingestor/common.js", "./src/report/form.js", "./src/ingestor/utils.js", "./src/ingestor/twitter.js"],
         "run_at": "document_start"
       },
       {
         "matches": ["https://www.facebook.com/*", "https://facebook.com/*"],
-        "js": ["./src/report/form.js", "./src/ingestor/utils.js", "./src/ingestor/facebook.js"]
+        "js": ["./src/ingestor/common.js", "./src/report/form.js", "./src/ingestor/utils.js", "./src/ingestor/facebook.js"]
       },
       {
         "matches": ["https://www.youtube.com/*", "https://youtube.com/*"],
-        "js": ["./src/report/form.js", "./src/ingestor/utils.js", "./src/ingestor/youtube.js"]
+        "js": ["./src/ingestor/common.js", "./src/report/form.js", "./src/ingestor/utils.js", "./src/ingestor/youtube.js"]
       }
     ],
     "description": "",
