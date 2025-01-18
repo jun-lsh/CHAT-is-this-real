@@ -112,6 +112,8 @@ app.openapi(createReportRoute, async (c) => {
       .insert(reports)
       .values({
         user_id: user?.id,
+        platform_name: body.platform_name,
+        report_type: body.report_type,
         report_text: body.report_text,
         report_hash: body.report_hash,
       })
@@ -123,6 +125,7 @@ app.openapi(createReportRoute, async (c) => {
     user_id: newReport[0].user_id!,
     report_text: newReport[0].report_text,
     created_at: Number(newReport[0].created_at),
+    platform_name: newReport[0].platform_name,
     report_hash: newReport[0].report_hash
   }
   
