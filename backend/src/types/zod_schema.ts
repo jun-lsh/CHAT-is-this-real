@@ -34,8 +34,10 @@ const CreateUserSchema = z.object({
 const CreateReportSchema = z.object({
   pkey: z.string(),
   report_text: z.string(),
+  report_type: z.string(),
   signature: z.string(),
   report_hash: z.string(),
+  platform_name: z.string(),
 })
 
 const ReportVoteSchema = z.object({
