@@ -147,9 +147,10 @@ function postDetails(href){
     const postId = href.match(postIdRegex)[1]; 
 
     return {
-        "username": username,
-        "postId": postId, 
-        "hashVal": username+postId
+        username: username,
+        postId: postId, 
+        site: "fb",
+        hashVal: username+postId
     }
 }
 

@@ -156,10 +156,11 @@ function processTweet(tweetElement) {
     const statusId = tweetLink ? tweetLink.href.match(/\/status\/(\d+)/)?.[1] : null;
 
     const tweetInfo = {
-        "username": username,
-        "timestamp": timestamp,
-        "statusId": statusId,
-        "hashVal": tweetLink ? tweetLink.href : null
+        username: username,
+        timestamp: timestamp,
+        site: "tw",
+        statusId: statusId,
+        hashVal: tweetLink ? tweetLink.href : null
     };
 
     // Log the extracted data

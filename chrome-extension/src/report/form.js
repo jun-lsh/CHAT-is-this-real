@@ -34,14 +34,14 @@ function createFormPopup(reportInfo) {
         }
     }
 
-    async function setValues(){
-        const repUrl = document.getElementById("reportName");
-        console.log(reportInfo["hashVal"])
+    async function generateHash(){
         const digestBuffer = await digestMessage(reportInfo["hashVal"])
-        repUrl.innerHTML = "Reporting: " + digestBuffer
-        // Setup event listeners after HTML is injected
-        return digestBuffer
-        
+        return reportInfo["site"] + "_" + digestBuffer
+    }
+
+    async function setValues(siteHash){
+        const repUrl = document.getElementById("reportName");
+        repUrl.innerHTML = "Reporting: " + siteHash
     }
 
     function setupEventListeners() {
@@ -87,10 +87,13 @@ function createFormPopup(reportInfo) {
     }
 
     async function showPopup() {
+        const postHash = await generateHash()
+        const response = await apiRequestServiceWorker('GET', '/reports/' + postHash);
+        console.log(response)
         // Ensure styles and HTML are injected before showing
         await Promise.all([injectStyles(), injectPopupHTML()]); 
-        const digestBuffer = await setValues();
-        console.log("displaying popup", digestBuffer)
+        await setValues(postHash);
+        console.log("displaying popup", postHash)
         const popup = document.getElementById('myFormPopup');
         const page1 = document.getElementById('page1');
         const page2 = document.getElementById('page2');

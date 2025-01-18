@@ -1,11 +1,11 @@
 console.log("Background script running...");
 
-const backend_endpoint = "https://juncheng.com";
+const backend_endpoint = "https://backend.juncheng03.workers.dev";
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'API_REQUEST') {
         let url = `${backend_endpoint}${message.endpoint}`;
-
+        console.log(url)
         // Add the query parameters to the request
         if (message.queryParams) {
             const params = new URLSearchParams();

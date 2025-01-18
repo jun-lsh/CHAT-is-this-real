@@ -165,6 +165,7 @@ function addMenu() {
 
     const showPopup = createFormPopup({
         hashVal: document.URL,
+        site: "yt",
         display: document.title
     });
     button.addEventListener("click", showPopup);
