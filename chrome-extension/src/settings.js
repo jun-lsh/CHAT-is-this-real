@@ -223,6 +223,8 @@ document.getElementById('regenerateKeys').addEventListener('click', async () => 
     };
 
     hasUnsavedChanges = true;
+    // Show/hide save button based on changes
+    document.getElementById('saveSettings').style.display = hasUnsavedChanges ? 'block' : 'none';
 });
 
 // Export keys to file
@@ -310,6 +312,8 @@ document.getElementById('keyFileInput').addEventListener('change', async (event)
 
                 showModal('Success', 'Keys imported successfully!');
                 hasUnsavedChanges = true;
+                // Show/hide save button based on changes
+                document.getElementById('saveSettings').style.display = hasUnsavedChanges ? 'block' : 'none';
             } catch (error) {
                 console.error('Error importing keys:', error);
                 showModal('Error', 'Failed to import keys. Please check the file format.');
