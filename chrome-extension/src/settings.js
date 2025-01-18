@@ -222,7 +222,7 @@ document.getElementById('regenerateKeys').addEventListener('click', async () => 
         publicKey: keys.publicKey
     };
 
-    checkForChanges();
+    hasUnsavedChanges = true;
 });
 
 // Export keys to file
@@ -309,7 +309,7 @@ document.getElementById('keyFileInput').addEventListener('change', async (event)
                 };
 
                 showModal('Success', 'Keys imported successfully!');
-                checkForChanges();
+                hasUnsavedChanges = true;
             } catch (error) {
                 console.error('Error importing keys:', error);
                 showModal('Error', 'Failed to import keys. Please check the file format.');
