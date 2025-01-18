@@ -29,17 +29,15 @@ function addTextBoxUnderTweet(tweetNode, text) {
         color: rgb(83, 100, 113);
         background-color: rgb(247, 249, 249);
     `;
-
+    console.log(tweetNode)
     // Add the text content
     textBox.textContent = text;
     var curr = tweetNode.childNodes[0]
     
     for(var _ = 0; _ < 11; _++) {
-        // console.log(_)
-        // if(curr.childNodes.length == 0){
-        //     console.log(curr)
-        // }
-        curr = curr.childNodes[0]
+
+        if(curr.childNodes.length == 1) curr = curr.childNodes[0]
+        else curr = curr.childNodes[1]
     }
     if(curr.childNodes.length > 1) return
     curr.appendChild(textBox);
@@ -114,7 +112,9 @@ function addReportButtonToTweet(tweetNode, tweetInfo){
         // if(curr.childNodes.length == 0){
         //     console.log(curr)
         // }
-        curr = curr.childNodes[0]
+        if(curr.childNodes.length != 1 && _ == 1) curr = curr.childNodes[1]
+        else curr = curr.childNodes[0]
+        // curr = curr.childNodes[0]
     }
 
     curr = curr.childNodes[12].childNodes[0].childNodes[0].childNodes[1].childNodes[0]
@@ -143,8 +143,11 @@ function postDetails(href){
     // Extract username
     const username = href.match(usernameRegex)[1];  // "Malaysiakini"
 
-    // Extract post ID
-    const postId = href.match(postIdRegex)[1]; 
+    // what the fuck is this code? who wrote this?
+    var postId = href.match(postIdRegex); 
+    const videoIdRegex = /watch\/\?v=([^&]+)/;
+    if(!postId) postId = href.match(videoIdRegex)[1];
+    else postId = postId[1]
 
     return {
         username: username,
@@ -279,10 +282,10 @@ function cleanupObservers() {
 }
 
 // Initialize observers for containers
-function initializeObservers() {
+async function initializeObservers() {
+    await new Promise(resolve => setTimeout(resolve, 1000)); // fuck you 2
     let elem = document.querySelectorAll("[class='x1lliihq']")[0];
-    console.log(elem);
-
+    // console.log(elem);
     if (elem) {
         const container = elem.parentNode;
         console.log(container)
@@ -292,14 +295,18 @@ function initializeObservers() {
             observer.observe(container, observerConfig);
             activeObservers.push(observer);
             console.log(`Tweet monitor initialized for ${container}`);
-
+                    
             // Process any existing tweets
-            const existingTweets = container.querySelectorAll("[class='x1lliihq']");
+            var existingTweets = container.querySelectorAll("[class='x1lliihq']");
+            
             existingTweets.forEach((tweet) => {
                 if (isTweetElement(tweet)) {
                     processTweet(tweet);
                 }
             });
+            console.log(elem)
+            console.log("processing the OG")
+            processTweet(elem)
 
             return
         }
