@@ -5,6 +5,20 @@
       "activeTab",
       "storage"
     ],
+    "content_scripts": [
+      {
+        "matches": ["https://www.x.com/*", "https://x.com/*"],
+        "js": ["./src/ingestor/twitter.js"]
+      },
+      {
+        "matches": ["https://www.facebook.com/*", "https://facebook.com/*"],
+        "js": ["./src/ingestor/facebook.js"]
+      },
+      {
+        "matches": ["https://www.youtube.com/*", "https://youtube.com/*"],
+        "js": ["./src/ingestor/youtube.js"]
+      }
+    ],
     "description": "",
     "version": "1.0",
     "icons": {
