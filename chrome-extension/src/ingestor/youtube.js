@@ -202,7 +202,8 @@ function isTweetElement(element) {
     // Twitter-specific selectors for both timeline and profile tweets
     let res =
         element.tagName == "YTD-COMPACT-VIDEO-RENDERER" ||
-        element.tagName == "YTD-RICH-ITEM-RENDERER";
+        element.tagName == "YTD-RICH-ITEM-RENDERER" ||
+        element.tagName == "YTD-VIDEO-RENDERER";
 
     console.log(res);
     return res;
@@ -236,7 +237,7 @@ function cleanupObservers() {
 function initializeObservers() {
     for (let container of document.querySelectorAll('[id="contents"]')) {
         let len = container.querySelectorAll(
-            "ytd-compact-video-renderer, ytd-rich-item-renderer"
+            "ytd-compact-video-renderer, ytd-rich-item-renderer, ytd-video-renderer"
         ).length;
         console.log(
             "CONTAINER",
@@ -252,7 +253,7 @@ function initializeObservers() {
 
         // Process any existing tweets
         const existingTweets = container.querySelectorAll(
-            "ytd-compact-video-renderer, ytd-rich-item-renderer"
+            "ytd-compact-video-renderer, ytd-rich-item-renderer, ytd-video-renderer"
         );
         console.log(existingTweets);
         existingTweets.forEach((tweet) => {
@@ -298,6 +299,22 @@ function initialize() {
     addMenu();
     addReportInfo();
     setupURLMonitoring();
+
+    setTimeout(() => {
+        initializeObservers();
+
+        for (let container of activeObservers)
+        const existingTweets = container.querySelectorAll(
+            "ytd-compact-video-renderer, ytd-rich-item-renderer, ytd-video-renderer"
+        );
+        console.log(existingTweets);
+        existingTweets.forEach((tweet) => {
+            console.log(existingTweets.tagName);
+            if (isTweetElement(tweet)) {
+                processTweet(tweet);
+            }
+        });
+    }, 500);
 }
 
 if (document.readyState === "loading") {
