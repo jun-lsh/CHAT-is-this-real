@@ -1,6 +1,6 @@
 console.log("Background script running...");
 
-const backend_endpoint = "https://backend.juncheng03.workers.dev";
+const backend_endpoint = "http://localhost:8787";
 
 // Utility function to convert hex string to ArrayBuffer
 function hexToArrayBuffer(hexString) {

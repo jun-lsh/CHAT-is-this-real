@@ -35,6 +35,7 @@ const CreateReportSchema = z.object({
   pkey: z.string(),
   report_text: z.string(),
   report_type: z.string(),
+  report_time: z.string(),
   signature: z.string(),
   report_hash: z.string(),
   platform_name: z.string(),
