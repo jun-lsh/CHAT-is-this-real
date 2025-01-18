@@ -134,42 +134,48 @@ function addReportButtonToTweet(tweetNode, tweetInfo){
 }
 
 
-function postDetails(href){
-    // For username (comes after facebook.com/)
-    // For group ID (comes after groups/ and before next /)
-    const groupIdRegex = /groups\/([^\/]+)/;
+function postDetails(href) {
+    // Pattern matchers for different URL types
+    const patterns = {
+        posts: /\/posts\/([^?]+)/,
+        video: /watch\/\?v=([^&]+)/,
+        group: /groups\/([^\/]+)\/user\/([^\/]+)/,
+        permalink: /story_fbid=([^&]+).*?&id=([^&]+)/
+    };
 
-    // For user ID (comes after user/ and before /)
-    const userIdRegex = /user\/([^\/]+)/;
+    // Check URL type and extract accordingly
+    let type, username, postId;
 
-    const usernameRegex = /facebook\.com\/([^\/]+)/;
-
-    // For post ID (comes after /posts/ and before ?__cft__)
-    const postIdRegex = /\/posts\/([^?]+)/;
-    // Extract username
-    
-    var username = href.match(userIdRegex);  // "Malaysiakini"
-    if(username){
-        username = username[1]
-        if(username){
-            username = username[1]
-            var postId = href.match(groupIdRegex)[1]
-        }
-    } else  
-    {
-        username = href.match(usernameRegex)[1]
-    // what the fuck is this code? who wrote this?
-    var postId = href.match(postIdRegex); 
-    const videoIdRegex = /watch\/\?v=([^&]+)/;
-    if(!postId) postId = href.match(videoIdRegex)[1];
-    else postId = postId[1]
+    if (href.includes('/posts/')) {
+        type = 'posts';
+        username = href.match(/facebook\.com\/([^\/]+)/)[1];
+        postId = href.match(patterns.posts)[1];
     }
+    else if (href.includes('/watch/')) {
+        type = 'watch';
+        username = href.match(/facebook\.com\/([^\/]+)/)[1];
+        postId = href.match(patterns.video)[1];
+    }
+    else if (href.includes('/groups/')) {
+        type = 'groups';
+        const matches = href.match(patterns.group);
+        postId = matches[1];    // group id
+        username = matches[2];   // user id
+    }
+    else if (href.includes('permalink.php')) {
+        type = 'permalink';
+        const matches = href.match(patterns.permalink);
+        postId = matches[1];    // story_fbid
+        username = matches[2];   // id
+    }
+
     return {
-        username: username,
-        postId: postId, 
+        type,
+        username,
+        postId,
         site: "fb",
-        hashVal: username+postId
-    }
+        hashVal: username + postId
+    };
 }
 
 // Function to process new tweets

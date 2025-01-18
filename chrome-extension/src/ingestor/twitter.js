@@ -298,7 +298,7 @@ async function initializeObservers() {
     ];
     
     cleanupObservers();
-    await new Promise(resolve => setTimeout(resolve, 1500)); // fuck you
+    await new Promise(resolve => setTimeout(resolve, 2500)); // fuck you
     selectors.forEach(selector => {
         const container = document.querySelector(selector);
         if (container) {
