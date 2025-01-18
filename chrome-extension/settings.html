@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html data-theme="light">
+<head>
+  <title>Extension Settings</title>
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --background-color: #ffffff;
+      --text-color: #1f2937;
+      --border-color: #e5e7eb;
+      --input-bg: #f9fafb;
+      --hover-color: #3b82f6;
+    }
+
+    [data-theme="dark"] {
+      --primary-color: #3b82f6;
+      --background-color: #1f2937;
+      --text-color: #f9fafb;
+      --border-color: #374151;
+      --input-bg: #374151;
+      --hover-color: #60a5fa;
+    }
+
+    body {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      transition: all 0.3s ease;
+    }
+
+    .settings-container {
+      background-color: var(--background-color);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .setting-group {
+      margin-bottom: 24px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    h1 {
+      margin-bottom: 24px;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    input[type="text"], select {
+      width: 96%;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"]:disabled {
+      background-color: var(--border-color);
+      cursor: not-allowed;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: var(--primary-color);
+      color: white;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: var(--hover-color);
+    }
+
+    .switch-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--border-color);
+      transition: .4s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--primary-color);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    #savedMessage {
+      display: none;
+      color: #10b981;
+      margin-top: 16px;
+      padding: 8px;
+      border-radius: 6px;
+      background-color: #d1fae5;
+    }
+
+    [data-theme="dark"] #savedMessage {
+      background-color: #064e3b;
+    }
+  </style>
+</head>
+<body>
+<div class="settings-container">
+  <h1>Settings</h1>
+
+  <div class="setting-group">
+    <label for="privateKey">Private Key:</label>
+    <input type="text" id="privateKey" disabled spellcheck="false">
+    <label for="publicKey">Public Key:</label>
+    <input type="text" id="publicKey" disabled spellcheck="false">
+    <button id="regenerateKeys">Regenerate Keypair</button>
+    <div class="key-management" style="margin-top: 12px;">
+      <button id="exportKeys">Export Keys</button>
+      <button id="importKeys">Import Keys</button>
+      <input type="file" id="keyFileInput" accept=".json" style="display: none;">
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <label for="exampleDropdown">Example Dropdown:</label>
+    <select id="exampleDropdown">
+      <option value="option1">Option 1</option>
+      <option value="option2">Option 2</option>
+      <option value="option3">Option 3</option>
+    </select>
+  </div>
+
+  <div class="setting-group">
+    <div class="switch-container">
+      <label for="exampleSwitch">Example Switch:</label>
+      <label class="switch">
+        <input type="checkbox" id="exampleSwitch">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="switch-container">
+      <label for="showDropdownSwitch">Show Optional Dropdown:</label>
+      <label class="switch">
+        <input type="checkbox" id="showDropdownSwitch">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div id="optionalDropdownContainer" style="display: none; margin-top: 16px;">
+      <select id="optionalDropdown">
+        <option value="opt1">Optional 1</option>
+        <option value="opt2">Optional 2</option>
+        <option value="opt3">Optional 3</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="switch-container">
+      <label for="darkModeSwitch">Dark Mode:</label>
+      <label class="switch">
+        <input type="checkbox" id="darkModeSwitch">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <button id="saveSettings">Save Settings</button>
+  <div id="savedMessage">Settings saved successfully!</div>
+</div>
+<script src="src/settings.js"></script>
+</body>
+</html>

@@ -94,6 +94,47 @@ function addReportButtonToTweet(buttonNode, tweetInfo){
     buttonNode.appendChild(button);
 }
 
+// Function to process a list of tweets and send the data to the service worker
+async function processTweetElements(tweetElementList) {
+    let tweetIdList = [];
+    let tweetElementMap = new Map();
+
+    tweetElementList.forEach(tweetElement => {
+        if (isTweetElement(tweetElement)) {
+            let result = processTweet(tweetElement);
+            if (result) {
+                tweetIdList.push(result.statusId);
+                tweetElementMap.set(result.statusId,
+                    {
+                        element:tweetElement,
+                        info: result
+                    }
+                );
+            }
+        }
+    });
+
+    console.log(`Processed tweet elements: ${tweetIdList.length}`)
+
+    // send a message to the service worker containing a list of all the tweets you want to check
+    const response = await apiRequestServiceWorker('POST', '/validate', { site: "twitter" }, tweetIdList);
+    if (response && response.data) {
+        // response.data is an array of tweet IDs that matched
+        const matchedIds = new Set(response.data);
+
+        tweetElementMap.forEach((item, tweetId) => {
+            if (matchedIds.has(tweetId)) {
+                addTextBoxUnderTweet(item.element, '^ THIS POST IS 100% MISINFORMATION!! ^');
+            } else {
+                var buttonDiv = item.element.querySelector('[data-testid="caret"]')
+                for(var _ = 0; _ < 4; _++) buttonDiv = buttonDiv.parentNode;
+
+                addReportButtonToTweet(buttonDiv, item.info);
+            }
+        });
+    }
+}
+
 // Function to process new tweets
 function processTweet(tweetElement) {
     // Check if we've already processed this tweet
@@ -126,12 +167,7 @@ function processTweet(tweetElement) {
     // Log the extracted data
     console.log('New tweet detected:', tweetInfo);
 
-    addTextBoxUnderTweet(tweetElement, '^ THIS POST IS 100% NOT MISINFORMATION!! ^');
-
-    var buttonDiv = tweetElement.querySelector('[data-testid="caret"]')
-    for(var _ = 0; _ < 4; _++) buttonDiv = buttonDiv.parentNode;
-    
-    addReportButtonToTweet(buttonDiv, tweetInfo);
+    return tweetInfo;
 }
 
 // Function to identify tweet elements
@@ -149,22 +185,24 @@ function handleMutations(mutations) {
     for (const mutation of mutations) {
         // Check added nodes
         if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+            let nodesToCheck = [];
+
             mutation.addedNodes.forEach(node => {
                 // Check if the node is an element and matches our tweet criteria
                 if (node.nodeType === Node.ELEMENT_NODE) {
                     // If the node itself is a tweet
-                    if (isTweetElement(node)) {
-                        processTweet(node);
-                    }
+                    nodesToCheck.push(node);
                     
                     // Check children for tweets (in case tweets are nested in added containers)
                     const tweetElements = node.querySelectorAll('article');
                     tweetElements.forEach(tweetElement => {
-                        if (isTweetElement(tweetElement)) {
-                            processTweet(tweetElement);
-                        }
+                        nodesToCheck.push(tweetElement);
                     });
                 }
+            });
+
+            processTweetElements(nodesToCheck).then(r => {
+                console.log(`tweets checked ${nodesToCheck.length}`);
             });
         }
     }
@@ -195,10 +233,8 @@ function initializeObservers() {
             
             // Process any existing tweets
             const existingTweets = container.querySelectorAll('article');
-            existingTweets.forEach(tweet => {
-                if (isTweetElement(tweet)) {
-                    processTweet(tweet);
-                }
+            processTweetElements(existingTweets).then(r => {
+                console.log(`existing tweets checked ${existingTweets.length}`);
             });
         }
     });
