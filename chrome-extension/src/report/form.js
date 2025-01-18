@@ -28,8 +28,8 @@ function createFormPopup(reportInfo) {
                 div.innerHTML = html;
                 document.body.appendChild(div.firstElementChild);
 
-                const repUrl = document.getElementById("reportUrl");
-                repUrl.innerHTML = "Reporting: " + reportInfo["url"]
+                const repUrl = document.getElementById("reportName");
+                repUrl.innerHTML = "Reporting: " + reportInfo["display"]
                 
                 // Setup event listeners after HTML is injected
                 setupEventListeners();
