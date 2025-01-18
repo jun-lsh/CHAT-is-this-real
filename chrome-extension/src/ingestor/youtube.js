@@ -302,18 +302,6 @@ function initialize() {
 
     setTimeout(() => {
         initializeObservers();
-
-        for (let container of activeObservers)
-        const existingTweets = container.querySelectorAll(
-            "ytd-compact-video-renderer, ytd-rich-item-renderer, ytd-video-renderer"
-        );
-        console.log(existingTweets);
-        existingTweets.forEach((tweet) => {
-            console.log(existingTweets.tagName);
-            if (isTweetElement(tweet)) {
-                processTweet(tweet);
-            }
-        });
     }, 500);
 }
 
