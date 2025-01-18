@@ -13,7 +13,7 @@ let activeObservers = [];
 function addTextBoxUnderTweet(tweetNode, text) {
     // console.log("Called addTextBoxUnderTweet");
     // Create a new div for our text box
-
+    // if(tweetNode.parentNode.childNodes.first == tweetNode){console.log("first kid")}
     const textBox = document.createElement("div");
     const tweetId = Math.random().toString(36).substring(7);
     textBox.id = `tweet-box-${tweetId}`;
@@ -33,19 +33,99 @@ function addTextBoxUnderTweet(tweetNode, text) {
     // Add the text content
     textBox.textContent = text;
     var curr = tweetNode.childNodes[0]
-    // border-radius: max(0px, min(var(--card-corner-radius), calc((100vw - 4px - 100%) * 9999))) / var(--card-corner-radius);
-
-    // for(var _ = 0; _ < 20; _++) {
-    //     curr = curr.childNodes[0]
-    //     //                                 max(0px, min(var(--card-corner-radius), calc((100vw - 4px - 100%) * 9999))) / var(--card-corner-radius);
-    //     if(curr.style['borderRadius'] === "max(0px, min(var(--card-corner-radius), calc((100vw - 4px - 100%) * 9999))) / var(--card-corner-radius)"){
-    //         console.log(curr.style['borderRadius'])
-    //         break;
-    //     }
-    // }
+    
+    for(var _ = 0; _ < 11; _++) {
+        // console.log(_)
+        // if(curr.childNodes.length == 0){
+        //     console.log(curr)
+        // }
+        curr = curr.childNodes[0]
+    }
+    if(curr.childNodes.length > 1) return
     curr.appendChild(textBox);
 
 }
+
+function addReportButtonToTweet(tweetNode, tweetInfo){
+    const button = document.createElement("button");
+    // <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+    //   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.5 11.5 11 13l4-3.5M12 20a16.405 16.405 0 0 1-5.092-5.804A16.694 16.694 0 0 1 5 6.666L12 4l7 2.667a16.695 16.695 0 0 1-1.908 7.529A16.406 16.406 0 0 1 12 20Z"/>
+    // </svg>
+    
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "20");
+    svg.setAttribute("height", "20");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M9.5 11.5 11 13l4-3.5M12 20a16.405 16.405 0 0 1-5.092-5.804A16.694 16.694 0 0 1 5 6.666L12 4l7 2.667a16.695 16.695 0 0 1-1.908 7.529A16.406 16.406 0 0 1 12 20Z");
+    svg.appendChild(path);
+
+    button.className = 'custom-button';
+    // Add styles to head
+    const style = document.createElement('style');
+    style.textContent = `
+      .custom-button {
+        display: inline-flex;
+        align-items: center;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+      }
+      
+      .custom-button::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        width: 24px;
+        height: 24px;
+        padding: 8px;
+        border-radius: 50%;
+        background-color: rgba(255, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+      }
+      
+      .custom-button:hover::before {
+        transform: translate(-50%, -50%) scale(1);
+      }
+    `;
+    document.head.appendChild(style);
+    
+    button.className = 'custom-button';
+    button.appendChild(svg);
+
+    const showPopup = createFormPopup(tweetInfo);
+    button.addEventListener("click", showPopup);
+
+
+    var curr = tweetNode.childNodes[0]
+    
+    for(var _ = 0; _ < 12; _++) {
+        // console.log(_)
+        // if(curr.childNodes.length == 0){
+        //     console.log(curr)
+        // }
+        curr = curr.childNodes[0]
+    }
+
+    curr = curr.childNodes[12].childNodes[0].childNodes[0].childNodes[1].childNodes[0]
+    if(curr.childNodes.length > 4) return
+
+    // const buttonContainer = document.createElement('div');
+    // buttonContainer.
+    curr.appendChild(button);
+    // buttonNode
+}
+
 
 // Function to process new tweets
 async function processTweet(tweetElement) {
@@ -61,7 +141,7 @@ async function processTweet(tweetElement) {
 
     var targetAnchor = findTargetAnchor();
     if (targetAnchor) {
-        console.log(targetAnchor)
+        console.log("came widdit")
         var event = new FocusEvent('focusin', {
             'view': window,
             'bubbles': true,
@@ -69,10 +149,13 @@ async function processTweet(tweetElement) {
         });
 
         targetAnchor.dispatchEvent(event);
+        console.log(targetAnchor)
+        await new Promise(resolve => setTimeout(resolve, 200));
         addTextBoxUnderTweet(
             tweetElement,
             "^ THIS POST IS 100% NOT MISINFORMATION!! ^"
         );
+        addReportButtonToTweet(tweetElement, {})
     } else {
         var observer = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
@@ -89,11 +172,14 @@ async function processTweet(tweetElement) {
 
                         targetAnchor.dispatchEvent(event);
                         console.log(targetAnchor)
-                        addTextBoxUnderTweet(
-                            tweetElement,
-                            "^ THIS POST IS 100% NOT MISINFORMATION!! ^"
-                        );
-                        observer.disconnect();
+                        if(!targetAnchor.getAttribute('href').includes("l.facebook.com")){
+                            addTextBoxUnderTweet(
+                                tweetElement,
+                                "^ THIS POST IS 100% NOT MISINFORMATION!! ^"
+                            );
+                            addReportButtonToTweet(tweetElement, {})
+                            observer.disconnect();
+                        }
                     }
                 }
             });
