@@ -13,6 +13,7 @@
 .form-container {
     position: relative;
     background-color: black;
+    color: white;
     padding: 20px;
     border-radius: 8px;
     width: 90%;
@@ -20,6 +21,27 @@
     margin: 50px auto;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
+
+.form-page {
+    font-family: sans-serif;
+}
+
+.form-page h2 {
+    color:white;
+    font-size: 1.5em;
+}
+
+.form-page h3 {
+    color:white;
+    font-size: 1.17em;
+}
+
+
+.form-page label {
+    color:white;
+    font-size: 1em;
+}
+
 
 .close-button {
     position: absolute;

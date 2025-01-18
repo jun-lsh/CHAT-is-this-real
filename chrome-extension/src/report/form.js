@@ -27,16 +27,21 @@ function createFormPopup(reportInfo) {
                 const div = document.createElement('div');
                 div.innerHTML = html;
                 document.body.appendChild(div.firstElementChild);
-
-                const repUrl = document.getElementById("reportName");
-                repUrl.innerHTML = "Reporting: " + reportInfo["display"]
-                
-                // Setup event listeners after HTML is injected
                 setupEventListeners();
             } catch (error) {
                 console.error('Error loading popup HTML:', error);
             }
         }
+    }
+
+    async function setValues(){
+        const repUrl = document.getElementById("reportName");
+        console.log(reportInfo["hashVal"])
+        const digestBuffer = await digestMessage(reportInfo["hashVal"])
+        repUrl.innerHTML = "Reporting: " + digestBuffer
+        // Setup event listeners after HTML is injected
+        return digestBuffer
+        
     }
 
     function setupEventListeners() {
@@ -81,17 +86,19 @@ function createFormPopup(reportInfo) {
         });
     }
 
-    function showPopup() {
+    async function showPopup() {
         // Ensure styles and HTML are injected before showing
-        Promise.all([injectStyles(), injectPopupHTML()]).then(() => {
-            const popup = document.getElementById('myFormPopup');
-            const page1 = document.getElementById('page1');
-            const page2 = document.getElementById('page2');
-            
-            popup.style.display = 'block';
-            page1.classList.remove('hidden');
-            page2.classList.add('hidden');
-        });
+        await Promise.all([injectStyles(), injectPopupHTML()]); 
+        const digestBuffer = await setValues();
+        console.log("displaying popup", digestBuffer)
+        const popup = document.getElementById('myFormPopup');
+        const page1 = document.getElementById('page1');
+        const page2 = document.getElementById('page2');
+        
+        popup.style.display = 'block';
+        page1.classList.remove('hidden');
+        page2.classList.add('hidden');
+        
     }
 
     function hidePopup() {

@@ -164,7 +164,7 @@ function addMenu() {
     button.appendChild(svg);
 
     const showPopup = createFormPopup({
-        hash: document.URL,
+        hashVal: document.URL,
         display: document.title
     });
     button.addEventListener("click", showPopup);

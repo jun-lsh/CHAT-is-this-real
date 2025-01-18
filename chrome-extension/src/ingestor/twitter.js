@@ -88,7 +88,7 @@ function addReportButtonToTweet(buttonNode, tweetInfo){
     
     button.className = 'custom-button';
     button.appendChild(svg);
-
+    console.log("Passing in: ", tweetInfo)
     const showPopup = createFormPopup(tweetInfo);
     button.addEventListener("click", showPopup);
     buttonNode.appendChild(button);
@@ -103,6 +103,9 @@ async function processTweetElements(tweetElementList) {
         if (isTweetElement(tweetElement)) {
             let result = processTweet(tweetElement);
             if (result) {
+                var buttonDiv = tweetElement.querySelector('[data-testid="caret"]')
+                for(var _ = 0; _ < 4; _++) buttonDiv = buttonDiv.parentNode;
+                addReportButtonToTweet(buttonDiv, result);
                 tweetIdList.push(result.statusId);
                 tweetElementMap.set(result.statusId,
                     {
@@ -125,11 +128,6 @@ async function processTweetElements(tweetElementList) {
         tweetElementMap.forEach((item, tweetId) => {
             if (matchedIds.has(tweetId)) {
                 addTextBoxUnderTweet(item.element, '^ THIS POST IS 100% MISINFORMATION!! ^');
-            } else {
-                var buttonDiv = item.element.querySelector('[data-testid="caret"]')
-                for(var _ = 0; _ < 4; _++) buttonDiv = buttonDiv.parentNode;
-
-                addReportButtonToTweet(buttonDiv, item.info);
             }
         });
     }
@@ -161,11 +159,11 @@ function processTweet(tweetElement) {
         "username": username,
         "timestamp": timestamp,
         "statusId": statusId,
-        "url": tweetLink ? tweetLink.href : null
+        "hashVal": tweetLink ? tweetLink.href : null
     };
 
     // Log the extracted data
-    console.log('New tweet detected:', tweetInfo);
+    // console.log('New tweet detected:', tweetInfo);
 
     return tweetInfo;
 }

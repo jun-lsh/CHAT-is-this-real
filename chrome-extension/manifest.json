@@ -23,11 +23,11 @@
       },
       {
         "matches": ["https://www.facebook.com/*", "https://facebook.com/*"],
-        "js": ["./src/report/form.js", "./src/ingestor/facebook.js"]
+        "js": ["./src/report/form.js", "./src/ingestor/utils.js", "./src/ingestor/facebook.js"]
       },
       {
         "matches": ["https://www.youtube.com/*", "https://youtube.com/*"],
-        "js": ["./src/report/form.js", "./src/ingestor/youtube.js"]
+        "js": ["./src/report/form.js", "./src/ingestor/utils.js", "./src/ingestor/youtube.js"]
       }
     ],
     "description": "",
