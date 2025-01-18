@@ -1,16 +1,16 @@
-import { Hono } from 'hono'
 import { db } from '../db/db';
-import { users, reports } from '../db/schema';
+import { users, reports, report_votes } from '../db/schema';
 import { swaggerUI } from '@hono/swagger-ui'
-import { createRoute } from '@hono/zod-openapi'
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { z } from 'zod'
 import { eq } from 'drizzle-orm'
-
+import { verifySignature } from './utils';
+import { getHelloRoute, getUsersRoute, getUserByIdRoute, getReportByIdRoute, getReportsRoute, createUserRoute, createReportRoute, deleteUserRoute, deleteReportRoute, createReportVoteRoute, getReportVotesRoute } from './routes/openApiRoutes'
 type Env = {
   D1: D1Database
   ENV_TYPE : 'dev' | 'prod'
 }
+
+
 
 const app = new OpenAPIHono<{ Bindings: Env }>()
 
@@ -24,233 +24,7 @@ app.doc('/doc', {
 
 app.get("/ui", swaggerUI({ url: "/doc" }));
 
-// Define response schemas
-const HelloResponseSchema = z.object({
-  message: z.string().openapi({
-    example: 'Hello note anything!'
-  })
-})
 
-// Define schemas based on your Drizzle schema
-const UserSchema = z.object({
-  id: z.number(),
-  username: z.string(),
-  pkey: z.number(),
-  reputation: z.number().nullable(),
-})
-
-const ReportSchema = z.object({
-  id: z.number(),
-  user_id: z.number(),
-  report_text: z.string(),
-  created_at: z.number(),
-})
-
-// Request body schemas
-const CreateUserSchema = z.object({
-  username: z.string(),
-  pkey: z.number(),
-  reputation: z.number().optional(),
-})
-
-const CreateReportSchema = z.object({
-  user_id: z.number(),
-  report_text: z.string(),
-})
-
-// Create routes with OpenAPI specs
-const getHelloRoute = createRoute({
-  method: 'get',
-  path: '/',
-  responses: {
-    200: {
-      content: {
-        'text/plain': {
-          schema: z.string()
-        }
-      },
-      description: 'Successful response'
-    }
-  }
-})
-
-const getUsersRoute = createRoute({
-  method: 'get',
-  path: '/get_users',
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: UserSchema.array()
-        }
-      },
-      description: 'List of all users'
-    }
-  }
-})
-
-const getUserRoute = createRoute({
-  method: 'get',
-  path: '/get_users',
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: UserSchema.array()
-        }
-      },
-      description: 'List of all users'
-    }
-  }
-})
-
-// Route definitions
-const getUserByIdRoute = createRoute({
-  method: 'get',
-  path: '/users/:id',
-  request: {
-    params: z.object({
-      id: z.string(),
-    })
-  },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: UserSchema
-        }
-      },
-      description: 'User details'
-    },
-    404: {
-      description: 'User not found'
-    }
-  }
-})
-
-const getReportByIdRoute = createRoute({
-  method: 'get',
-  path: '/reports/:id',
-  request: {
-    params: z.object({
-      id: z.string(),
-    })
-  },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: ReportSchema
-        }
-      },
-      description: 'Report details'
-    },
-    404: {
-      description: 'Report not found'
-    }
-  }
-})
-
-const getReportsRoute = createRoute({
-  method: 'get',
-  path: '/reports',
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: ReportSchema.array()
-        }
-      },
-      description: 'List of all reports'
-    }
-  }
-})
-
-const createUserRoute = createRoute({
-  method: 'post',
-  path: '/users',
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: CreateUserSchema
-        }
-      }
-    }
-  },
-  responses: {
-    201: {
-      content: {
-        'application/json': {
-          schema: UserSchema
-        }
-      },
-      description: 'User created successfully'
-    }
-  }
-})
-
-const createReportRoute = createRoute({
-  method: 'post',
-  path: '/reports',
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: CreateReportSchema
-        }
-      }
-    }
-  },
-  responses: {
-    201: {
-      content: {
-        'application/json': {
-          schema: ReportSchema
-        }
-      },
-      description: 'Report created successfully'
-    }
-  }
-})
-
-const deleteUserRoute = createRoute({
-  method: 'delete',
-  path: '/users/:id',
-  request: {
-    params: z.object({
-      id: z.string(),
-    })
-  },
-  responses: {
-    200: {
-      description: 'User deleted successfully'
-    },
-    404: {
-      description: 'User not found'
-    }
-  }
-})
-
-const deleteReportRoute = createRoute({
-  method: 'delete',
-  path: '/reports/:id',
-  request: {
-    params: z.object({
-      id: z.string(),
-    })
-  },
-  responses: {
-    200: {
-      description: 'Report deleted successfully'
-    },
-    404: {
-      description: 'Report not found'
-    }
-  }
-})
-
-// Update route handlers to use the OpenAPI specs
 app.openapi(getHelloRoute, (c) => {
   return c.text('Hello note anything!')
 })
@@ -262,8 +36,9 @@ app.openapi(getUsersRoute, async (c) => {
 })
 
 app.openapi(getUserByIdRoute, async (c) => {
-  const id = Number(c.req.param('id'))
-  const user = await db(c.env.D1).select().from(users).where(eq(users.id, id)).get()
+  const pkey = c.req.param('pkey')
+  if (!pkey) return c.json({ error: 'pkey is required' }, 400)
+  const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, pkey)).get()
   if (!user) return c.json({ error: 'User not found' }, 404)
   return c.json(user)
 })
@@ -289,6 +64,9 @@ app.openapi(getReportsRoute, async (c) => {
 
 app.openapi(createUserRoute, async (c) => {
   const body = await c.req.json()
+  if (!body.pkey) return c.json({ error: 'pkey is required' }, 400)
+  const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, body.pkey)).get()
+  if (user) return c.json({ error: 'User already exists' }, 400)
   const newUser = await db(c.env.D1)
     .insert(users)
     .values(body)
@@ -305,11 +83,16 @@ app.openapi(createUserRoute, async (c) => {
 
 app.openapi(createReportRoute, async (c) => {
   const body = await c.req.json()
+  const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, body.pkey)).get()
+  if (!user) return c.json({ error: 'User not found' }, 404)
+  const challenge = body.report_hash + body.report_text
+  const signature = body.signature
   const newReport = await db(c.env.D1)
     .insert(reports)
     .values({
-      user_id: body.user_id,
+      user_id: user?.id,
       report_text: body.report_text,
+      report_hash: body.report_hash,
     })
     .returning()
   
@@ -318,26 +101,61 @@ app.openapi(createReportRoute, async (c) => {
     id: newReport[0].id,
     user_id: newReport[0].user_id!,
     report_text: newReport[0].report_text,
-    created_at: Number(newReport[0].created_at)
+    created_at: Number(newReport[0].created_at),
+    report_hash: newReport[0].report_hash
   }
   
   return c.json(response, 201)
 })
 
 app.openapi(deleteUserRoute, async (c) => {
-  const id = Number(c.req.param('id'))
-  const user = await db(c.env.D1).select().from(users).where(eq(users.id, id)).get()
+  const pkey = String(c.req.param('pkey'))
+  const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, pkey)).get()
   if (!user) return c.json({ error: 'User not found' }, 404)
-  await db(c.env.D1).delete(users).where(eq(users.id, id))
+  await db(c.env.D1).delete(users).where(eq(users.pkey, pkey))
   return c.json({ message: 'User deleted successfully' })
 })
 
 app.openapi(deleteReportRoute, async (c) => {
-  const id = Number(c.req.param('id'))
-  const report = await db(c.env.D1).select().from(reports).where(eq(reports.id, id)).get()
+  const hash = String(c.req.param('hash'))
+  const report = await db(c.env.D1).select().from(reports).where(eq(reports.report_hash, hash)).get()
   if (!report) return c.json({ error: 'Report not found' }, 404)
-  await db(c.env.D1).delete(reports).where(eq(reports.id, id))
+  await db(c.env.D1).delete(reports).where(eq(reports.report_hash, hash))
   return c.json({ message: 'Report deleted successfully' })
+})
+
+
+app.openapi(getReportVotesRoute, async (c) => {
+  const votes = await db(c.env.D1).select().from(report_votes)
+  const response = votes.map(vote => ({
+    id: vote.id,
+    user_id: vote.user_id!,
+    report_id: vote.report_id!,
+    created_at: Number(vote.created_at),
+    upvote: vote.upvote,
+    downvote: vote.downvote
+  }))
+  return c.json(response)
+})
+
+
+
+app.openapi(createReportVoteRoute, async (c) => {
+  const body = await c.req.json()
+  const report = await db(c.env.D1).select().from(reports).where(eq(reports.report_hash, body.report_hash)).get()
+  if (!report) return c.json({ error: 'Report not found' }, 404)
+  const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, body.pkey)).get()
+  if (!user) return c.json({ error: 'User not found' }, 404)
+  const newReportVote = await db(c.env.D1)
+    .insert(report_votes)
+    .values({
+      report_id: report.id,
+      user_id: user.id,
+      upvote: body.upvote,
+      downvote: body.downvote,
+    })
+    .returning()
+  return c.json(newReportVote[0], 201)
 })
 
 export default app
