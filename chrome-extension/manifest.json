@@ -13,7 +13,9 @@
       {
         "resources": [
         "src/report/form.html",
-        "src/report/form.css"
+        "src/report/form.css",
+        "src/ingestor/warning.html",
+        "src/ingestor/warning.css"
         ],
         "matches": ["<all_urls>"]
       }
