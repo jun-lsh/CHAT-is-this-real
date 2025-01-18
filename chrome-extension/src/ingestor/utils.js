@@ -39,3 +39,27 @@ function throttleDebounce(fn, throttleInterval = 800, debounceInterval = 800) {
 		}
 	};
 }
+
+async function apiRequestServiceWorker(method, endpoint, params = null, body = null) {
+	return new Promise((resolve, reject) => {
+		chrome.runtime.sendMessage(
+			{
+				type: 'API_REQUEST',
+				method: method,
+				endpoint: endpoint,
+				queryParams: params,
+				body: body
+			},
+			response => {
+				if (response.success) {
+					// Handle successful response
+					resolve(response);
+				} else {
+					// Handle error
+					console.error('Error:', response.error);
+					reject(response.error);
+				}
+			}
+		);
+	});
+}

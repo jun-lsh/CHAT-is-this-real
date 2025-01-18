@@ -1,38 +1,64 @@
+// console.log("Background script running...");
+//
+// const backend_endpoint = "https://juncheng.com";
+
+// chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+//     if (message.type === 'API_REQUEST') {
+//         let url = `${backend_endpoint}${message.endpoint}`;
+//
+//         // Add the query parameters to the request
+//         if (message.queryParams) {
+//             const params = new URLSearchParams();
+//             for (const [key, value] of Object.entries(message.queryParams)) {
+//                 params.append(key, value);
+//             }
+//             url += `?${params.toString()}`;
+//         }
+//
+//         const fetchOptions = {
+//             method: message.method,
+//             headers: {
+//                 'Content-Type': 'application/json'
+//             }
+//         };
+//
+//         // Add the request body for POST/PUT requests
+//         if (message.body && ['POST', 'PUT', 'PATCH'].includes(message.method)) {
+//             fetchOptions.body = JSON.stringify(message.body);
+//         }
+//
+//         fetch(url, fetchOptions)
+//             .then(response => response.json())
+//             .then(data => sendResponse({ success: true, data: data }))
+//             .catch(error => sendResponse({ success: false, error: error.message }));
+//
+//         return true;
+//     }
+// });
+
 console.log("Background script running...");
 
-// This is an example of sending a message using a persistent
-// connection, between the service worker and the content script
-chrome.runtime.onConnect.addListener(function(port) {
-    console.assert(port.name === "knockknock");
-    port.onMessage.addListener(function(msg) {
-        console.log(`Service worker received message: ${JSON.stringify(msg)}`);
+const backend_endpoint = "https://juncheng.com";
 
-        if (msg.joke === "Knock knock")
-            port.postMessage({question: "Who's there?"});
-        else if (msg.answer === "Madame")
-            port.postMessage({question: "Madame who?"});
-        else if (msg.answer === "Madame... Bovary")
-            port.postMessage({question: "I don't get it."});
-    });
-});
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'API_REQUEST') {
+        // Debug: Immediately return half of the IDs without any server request
+        if (message.body) {
+            const tweetIds = message.body;
 
-// This is an example of once-off message sending between the
-// content script and the service worker
-(async () => {
-    const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-    console.log(`Sending a message to: ${JSON.stringify(tab)}`);
+            let tweetIdResults = [];
+            tweetIds.forEach((v, _) => {
+                if (Math.random() > 0.3) {
+                    tweetIdResults.push(v);
+                }
+            })
 
-    const response = await chrome.tabs.sendMessage(tab.id, {greeting: "hello"});
-    // do something with response here, not outside the function
-    console.log(`One time message response: ${JSON.stringify(response)}`);
-})();
+            console.log("Debug mode: Returning random subset tweet IDs:", tweetIdResults);
+            sendResponse({ success: true, data: tweetIdResults });
+            return true;
+        }
 
-chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
-        console.log(sender.tab ?
-            "from a content script:" + sender.tab.url :
-            "from the extension");
-        if (request.greeting === "hello")
-            sendResponse({farewell: "goodbye"});
+        sendResponse({ success: false, error: "No tweet IDs provided" });
+        return true;
     }
-);
+});
