@@ -1,5 +1,6 @@
 import { int, sqliteTable, text, index ,} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import { platform } from "os";
 
 export const users = sqliteTable("users", {
   id: int().primaryKey({ autoIncrement: true }),
@@ -16,6 +17,8 @@ export const reports = sqliteTable("reports", {
   user_id: int("user_id").references(() => users.id, { onDelete: 'cascade' }),
   report_hash: text("report_hash").notNull(),
   report_text: text("report_text").notNull(),
+  report_type : text("report_type").notNull(),
+  platform_name : text("platform_name").notNull(),
   created_at: int({mode: "timestamp_ms"}).default(sql`(CURRENT_TIMESTAMP)`),
 }, (table) => ({
   report_hash_idx: index("report_hash_idx").on(table.report_hash),
