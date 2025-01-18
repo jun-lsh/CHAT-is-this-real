@@ -1,8 +1,9 @@
-<div id="myFormPopup" class="form-popup">
+ <div id="myFormPopup" class="form-popup">
+    
     <div class="form-container">
         <button id="closePopup" class="close-button">&times;</button>
-        
-        <div id="page1" class="form-page">
+
+        <div id="pageReport">
             <h2>New Report</h2>
             <h3 id="reportName">Reporting:</h3>
             <div class="form-group">
@@ -11,22 +12,21 @@
                     <option value="misinformation">Misinformation</option>
                     <option value="trigger">Triggering Content</option>
                     <option value="slop">AI Content</option>
+                    <option value="epilepsy">Epilepsy</option>
                 </select>
             </div>
-            <div class="button-group">
-                <button id="nextButton" class="btn btn-next">Next</button>
-            </div>
-        </div>
-
-        <div id="page2" class="form-page hidden">
-            <h2>Page 2</h2>
             <div class="form-group">
-                <label for="messageInput">Message:</label>
+                <label for="messageInput" id="messageLabel">Message:</label>
                 <textarea id="messageInput" rows="4"></textarea>
             </div>
             <div class="button-group">
-                <button id="prevButton" class="btn btn-prev">Previous</button>
                 <button id="submitButton" class="btn btn-submit">Submit</button>
+            </div>
+        </div>
+
+        <div id="reportView" style="overflow-y: hidden;">
+            <h2>Existing Reports</h2>
+            <div id="reportContainer" style="overflow-y: scroll; max-height: 250px;"> 
             </div>
         </div>
     </div>

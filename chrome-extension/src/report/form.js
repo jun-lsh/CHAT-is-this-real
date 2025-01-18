@@ -45,45 +45,74 @@ function createFormPopup(reportInfo) {
     }
 
     function setupEventListeners() {
-        const popup = document.getElementById('myFormPopup');
-        const closeButton = document.getElementById('closePopup');
-        const nextButton = document.getElementById('nextButton');
-        const prevButton = document.getElementById('prevButton');
-        const submitButton = document.getElementById('submitButton');
-        const page1 = document.getElementById('page1');
-        const page2 = document.getElementById('page2');
+        const popup = document.getElementById("myFormPopup");
+        const closeButton = document.getElementById("closePopup");
+        const submitButton = document.getElementById("submitButton");
+        const reportType = document.getElementById("reportType");
+        const messageInput = document.getElementById("messageInput");
+        const messageLabel = document.getElementById("messageLabel");
 
-        closeButton.addEventListener('click', hidePopup);
+        closeButton.addEventListener("click", hidePopup);
 
-        popup.addEventListener('click', (e) => {
+        popup.addEventListener("click", (e) => {
             if (e.target === popup) {
                 hidePopup();
             }
         });
 
-        nextButton.addEventListener('click', () => {
-            page1.classList.add('hidden');
-            page2.classList.remove('hidden');
-        });
+        reportType.addEventListener("change", () => {
+            let reportValue = reportType.value;
+            if (
+                reportValue !== "epilepsy" &&
+                reportValue !== "slop" 
+            ) {
+                messageLabel.textContent = "Message (Required)"
+            } else {
+                messageLabel.textContent = "Message (Optional)"
+            }
+        })
 
-        prevButton.addEventListener('click', () => {
-            page2.classList.add('hidden');
-            page1.classList.remove('hidden');
-        });
+        submitButton.addEventListener("click", () => {
+            const reportValue = reportType.value;
+            const message = messageInput.value.trim();
 
-        submitButton.addEventListener('click', () => {
+            // Validation logic
+            if (
+                reportValue !== "epilepsy" &&
+                reportValue !== "slop" &&
+                message === ""
+            ) {
+                alert("Description is required for this report type.");
+                return;
+            }
+
             const formData = {
-                name: document.getElementById('nameInput').value,
-                email: document.getElementById('emailInput').value,
-                message: document.getElementById('messageInput').value
+                reportType: reportValue,
+                message: message,
             };
-            console.log('Form submitted:', formData);
+            console.log("Form submitted:", formData);
             hidePopup();
+            alert("Thank you for the report!")
+
             // Reset form
-            document.getElementById('nameInput').value = '';
-            document.getElementById('emailInput').value = '';
-            document.getElementById('messageInput').value = '';
+            messageInput.value = "";
         });
+    }
+
+    function createReportView(report) {
+        let view = document.createElement("div")
+        view.style.paddingBottom = "8px"
+
+        console.log(report)
+        let title = document.createElement("h2")
+        title.textContent = "Report about"
+        view.append(title)
+
+        let span = document.createElement("span");
+        span.textContent = "" + report["report_text"];
+        view.appendChild(span)
+
+        return view
     }
 
     async function showPopup() {
@@ -95,12 +124,22 @@ function createFormPopup(reportInfo) {
         await setValues(postHash);
         console.log("displaying popup", postHash)
         const popup = document.getElementById('myFormPopup');
-        const page1 = document.getElementById('page1');
-        const page2 = document.getElementById('page2');
         
         popup.style.display = 'block';
-        page1.classList.remove('hidden');
-        page2.classList.add('hidden');
+
+        const reportContainer = document.getElementById("reportContainer");
+        const reportView = document.getElementById("reportView");
+
+        let reports = response["data"];
+
+        if (!reports.length) {
+            reportView.style.display = "none";
+        } else {
+            reportView.style.display = "block";
+            for (let report of reports) {
+                reportContainer.appendChild(createReportView(report))
+            }
+        }
         
     }
 
