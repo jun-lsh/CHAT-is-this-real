@@ -42,6 +42,7 @@ function throttleDebounce(fn, throttleInterval = 800, debounceInterval = 800) {
 
 async function apiRequestServiceWorker(method, endpoint, params = null, body = null) {
 	return new Promise((resolve, reject) => {
+		console.log(body);
 		chrome.runtime.sendMessage(
 			{
 				type: 'API_REQUEST',

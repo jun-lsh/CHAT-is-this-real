@@ -103,6 +103,7 @@ async function processTweetElements(tweetElementList) {
         if (isTweetElement(tweetElement)) {
             let result = processTweet(tweetElement);
             if (result) {
+                console.log(result)
                 var buttonDiv = tweetElement.querySelector('[data-testid="caret"]')
                 for(var _ = 0; _ < 4; _++) buttonDiv = buttonDiv.parentNode;
                 addReportButtonToTweet(buttonDiv, result);
@@ -119,17 +120,19 @@ async function processTweetElements(tweetElementList) {
 
     console.log(`Processed tweet elements: ${tweetIdList.length}`)
 
-    // send a message to the service worker containing a list of all the tweets you want to check
-    const response = await apiRequestServiceWorker('POST', '/validate', { site: "twitter" }, tweetIdList);
-    if (response && response.data) {
-        // response.data is an array of tweet IDs that matched
-        const matchedIds = new Set(response.data);
+    if (tweetIdList.length > 0) {
+        // send a message to the service worker containing a list of all the tweets you want to check
+        const response = await apiRequestServiceWorker('POST', '/validate', {site: "twitter"}, tweetIdList);
+        if (response && response.data) {
+            // response.data is an array of tweet IDs that matched
+            const matchedIds = new Set(response.data);
 
-        tweetElementMap.forEach((item, tweetId) => {
-            if (matchedIds.has(tweetId)) {
-                addTextBoxUnderTweet(item.element, '^ THIS POST IS 100% MISINFORMATION!! ^');
-            }
-        });
+            matchedIds.forEach((tweetId, _) => {
+                if (tweetElementMap.has(tweetId)) {
+                    addTextBoxUnderTweet(tweetElementMap.get(tweetId).element, '^ THIS POST IS 100% MISINFORMATION!! ^');
+                }
+            });
+        }
     }
 }
 
@@ -231,10 +234,10 @@ function initializeObservers() {
             console.log(`Tweet monitor initialized for ${selector}`);
             
             // Process any existing tweets
-            const existingTweets = container.querySelectorAll('article');
-            processTweetElements(existingTweets).then(r => {
-                console.log(`existing tweets checked ${existingTweets.length}`);
-            });
+            // const existingTweets = container.querySelectorAll('article');
+            // processTweetElements(existingTweets).then(r => {
+            //     console.log(`existing tweets checked ${existingTweets.length}`);
+            // });
         }
     });
     

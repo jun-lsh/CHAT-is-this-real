@@ -2,9 +2,9 @@ import { db } from '../db/db';
 import { users, reports, report_votes } from '../db/schema';
 import { swaggerUI } from '@hono/swagger-ui'
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { eq } from 'drizzle-orm'
+import { eq, inArray ,count, sql, and} from 'drizzle-orm'
 import { verifySignature } from './utils';
-import { getHelloRoute, getUsersRoute, getUserByIdRoute, getReportByIdRoute, getReportsRoute, createUserRoute, createReportRoute, deleteUserRoute, deleteReportRoute, createReportVoteRoute, getReportVotesRoute } from './routes/openApiRoutes'
+import { getHelloRoute, getUsersRoute, getUserByIdRoute, getReportByIdRoute, getReportsRoute, createUserRoute, createReportRoute, deleteUserRoute, deleteReportRoute, createReportVoteRoute, getReportVotesRoute , getReportVoteRatioRoute, getReportsWithHashRoute} from './routes/openApiRoutes'
 type Env = {
   D1: D1Database
   ENV_TYPE : 'dev' | 'prod'
@@ -44,8 +44,18 @@ app.openapi(getUserByIdRoute, async (c) => {
 })
 
 app.openapi(getReportByIdRoute, async (c) => {
-  const id = Number(c.req.param('id'))
-  const report = await db(c.env.D1).select().from(reports).where(eq(reports.id, id)).get()
+  const hash = String(c.req.param('hash'))
+  const report = await db(c.env.D1).select(
+    {
+      id: reports.id,
+      report_hash: reports.report_hash,
+      report_text: reports.report_text,
+      created_at: reports.created_at,
+      upvote: sql<number>`COALESCE(upvote, 0)`,
+      downvote: sql<number>`COALESCE(downvote, 0)`
+    }
+
+  ).from(reports).leftJoin(report_votes, eq(reports.report_hash, report_votes.report_hash)).where(eq(reports.report_hash, hash)).all()
   if (!report) return c.json({ error: 'Report not found' }, 404)
   return c.json(report)
 })
@@ -57,6 +67,7 @@ app.openapi(getReportsRoute, async (c) => {
     id: report.id,
     user_id: report.user_id!,
     report_text: report.report_text,
+    report_hash: report.report_hash,
     created_at: Number(report.created_at)
   }))
   return c.json(response)
@@ -84,18 +95,28 @@ app.openapi(createUserRoute, async (c) => {
 app.openapi(createReportRoute, async (c) => {
   const body = await c.req.json()
   const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, body.pkey)).get()
-  if (!user) return c.json({ error: 'User not found' }, 404)
-  const challenge = body.report_hash + body.report_text
-  const signature = body.signature
-  const newReport = await db(c.env.D1)
-    .insert(reports)
-    .values({
-      user_id: user?.id,
+  const report = await db(c.env.D1).select().from(reports).where(eq(reports.report_hash, body.report_hash)).get()
+  let newReport;
+
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404)
+  }
+  else if (user && report) {
+    console.log("report update")
+    newReport = await db(c.env.D1).update(reports).set({
       report_text: body.report_text,
-      report_hash: body.report_hash,
-    })
-    .returning()
-  
+    }).where(and(eq(reports.report_hash, body.report_hash), eq(reports.user_id, user.id))).returning()
+  } 
+  else {
+    newReport = await db(c.env.D1)
+      .insert(reports)
+      .values({
+        user_id: user?.id,
+        report_text: body.report_text,
+        report_hash: body.report_hash,
+      })
+      .returning()
+  }
   // Transform the response to match the schema
   const response = {
     id: newReport[0].id,
@@ -151,11 +172,46 @@ app.openapi(createReportVoteRoute, async (c) => {
     .values({
       report_id: report.id,
       user_id: user.id,
+      report_hash: report.report_hash,
       upvote: body.upvote,
       downvote: body.downvote,
     })
     .returning()
   return c.json(newReportVote[0], 201)
+})
+
+app.openapi(getReportVoteRatioRoute, async (c) => {
+  const target_hash = c.req.query('target_hash')
+  if (!target_hash) return c.json({ error: 'target_hash is required' }, 400)
+  const report = await db(c.env.D1).select(
+    {
+      report_hash: reports.report_hash,
+      total_upvotes: sql<number>`SUM(COALESCE(upvote, 0))`,
+      total_downvotes: sql<number>`SUM(COALESCE(downvote, 0))`,
+      upvote_ratio: sql<number>`COALESCE(CAST(SUM(COALESCE(upvote, 0)) AS FLOAT) / NULLIF(SUM(COALESCE(upvote, 0)) + SUM(COALESCE(downvote, 0)), 0) * 100, 0)`,
+      downvote_ratio: sql<number>`COALESCE(CAST(SUM(COALESCE(downvote, 0)) AS FLOAT) / NULLIF(SUM(COALESCE(upvote, 0)) + SUM(COALESCE(downvote, 0)), 0) * 100, 0)`
+    }
+  ).from(reports)
+   .leftJoin(report_votes, eq(reports.report_hash, report_votes.report_hash))
+   .where(eq(reports.report_hash, target_hash))
+   .groupBy(reports.report_hash)
+   .get()
+
+  return c.json(report)
+})
+
+
+app.openapi(getReportsWithHashRoute, async (c) => {
+  const hashes = c.req.valid('query').hashes ?? []
+  const all_reports = await db(c.env.D1).select({
+    report_hash: reports.report_hash,
+    count: count()
+  }).from(reports).where(inArray(reports.report_hash, hashes)).groupBy(reports.report_hash)
+  const response = all_reports.map(report => ({
+    report_hash: report.report_hash,
+    count: report.count
+  }))
+  return c.json({reports: response})
 })
 
 export default app
