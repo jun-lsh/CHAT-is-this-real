@@ -29,7 +29,7 @@ function addTextBoxUnderTweet(tweetNode, text) {
         color: rgb(83, 100, 113);
         background-color: rgb(247, 249, 249);
     `;
-    console.log(tweetNode)
+    // console.log(tweetNode)
     // Add the text content
     textBox.textContent = text;
     var curr = tweetNode.childNodes[0]
@@ -136,19 +136,34 @@ function addReportButtonToTweet(tweetNode, tweetInfo){
 
 function postDetails(href){
     // For username (comes after facebook.com/)
+    // For group ID (comes after groups/ and before next /)
+    const groupIdRegex = /groups\/([^\/]+)/;
+
+    // For user ID (comes after user/ and before /)
+    const userIdRegex = /user\/([^\/]+)/;
+
     const usernameRegex = /facebook\.com\/([^\/]+)/;
 
     // For post ID (comes after /posts/ and before ?__cft__)
     const postIdRegex = /\/posts\/([^?]+)/;
     // Extract username
-    const username = href.match(usernameRegex)[1];  // "Malaysiakini"
-
+    
+    var username = href.match(userIdRegex);  // "Malaysiakini"
+    if(username){
+        username = username[1]
+        if(username){
+            username = username[1]
+            var postId = href.match(groupIdRegex)[1]
+        }
+    } else  
+    {
+        username = href.match(usernameRegex)[1]
     // what the fuck is this code? who wrote this?
     var postId = href.match(postIdRegex); 
     const videoIdRegex = /watch\/\?v=([^&]+)/;
     if(!postId) postId = href.match(videoIdRegex)[1];
     else postId = postId[1]
-
+    }
     return {
         username: username,
         postId: postId, 
@@ -179,7 +194,7 @@ async function processTweet(tweetElement) {
         });
 
         targetAnchor.dispatchEvent(event);
-        console.log(targetAnchor)
+        // console.log(targetAnchor)
         await new Promise(resolve => setTimeout(resolve, 200));
         addTextBoxUnderTweet(
             tweetElement,
@@ -188,7 +203,7 @@ async function processTweet(tweetElement) {
         addReportButtonToTweet(tweetElement, postDetails(targetAnchor.getAttribute('href')))
     } else {
         var observer = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
+            mutations.forEach(async function (mutation) {
                 // console.log(mutation.type);
                 if (mutation.type != "childList") {
                     targetAnchor = findTargetAnchor()
@@ -201,7 +216,7 @@ async function processTweet(tweetElement) {
                         });
 
                         targetAnchor.dispatchEvent(event);
-                        console.log(targetAnchor)
+                        // console.log(targetAnchor)
                         if(!targetAnchor.getAttribute('href').includes("l.facebook.com")){
                             addTextBoxUnderTweet(
                                 tweetElement,
@@ -304,7 +319,7 @@ async function initializeObservers() {
                     processTweet(tweet);
                 }
             });
-            console.log(elem)
+            // console.log(elem)
             console.log("processing the OG")
             processTweet(elem)
 
