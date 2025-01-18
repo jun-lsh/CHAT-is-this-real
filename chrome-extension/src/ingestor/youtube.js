@@ -18,12 +18,16 @@ function checkIsBad(hash) {
 function addReportInfoThumbnail(tweetNode, text) {  
     
     ytimg = tweetNode.querySelector("yt-image");
+
+
     let newsrc = ytimg?.querySelector("img")?.src;
 
     if (!newsrc) {
         setTimeout(() => addReportInfoThumbnail(tweetNode, text), 100);
         return
     }
+    
+    if (!ytimg || !ytimg.prepend) return;
 
     img = document.createElement("img")
     img.className =
@@ -32,9 +36,36 @@ function addReportInfoThumbnail(tweetNode, text) {
     img.src = newsrc;
     img.style.filter = "blur(10px)"
 
+    let svg = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "svg"
+    );
+    svg.setAttribute("width", "32");
+    svg.setAttribute("height", "32");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "red");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+
+    svg.setAttribute("absolute", true);
+    svg.setAttribute("left", "32px");
+    svg.setAttribute("top", "24px");
     
 
-    ytimg.prepend(img)
+    let path = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+    );
+    path.setAttribute(
+        "d",
+        "M12.356 3.066a1 1 0 0 0-.712 0l-7 2.666A1 1 0 0 0 4 6.68a17.695 17.695 0 0 0 2.022 7.98 17.405 17.405 0 0 0 5.403 6.158 1 1 0 0 0 1.15 0 17.406 17.406 0 0 0 5.402-6.157A17.694 17.694 0 0 0 20 6.68a1 1 0 0 0-.644-.949l-7-2.666Z"
+    );
+    svg.appendChild(path);
+
+    ytimg.prepend(img);
+    ytimg.prepend(svg);
 }
 
 function addReportInfo() {
@@ -203,35 +234,31 @@ function cleanupObservers() {
 
 // Initialize observers for containers
 function initializeObservers() {
-    const selectors = ['[id="contents"]'];
+    for (let container of document.querySelectorAll('[id="contents"]')) {
+        const observer = new MutationObserver(handleMutations);
+        observer.observe(container, observerConfig);
+        activeObservers.push(observer);
+        console.log("Tweet monitor initialized for", container);
 
-    cleanupObservers();
-
-    selectors.forEach((selector) => {
-        for (let container of document.querySelectorAll(selector)) {
-            const observer = new MutationObserver(handleMutations);
-            observer.observe(container, observerConfig);
-            activeObservers.push(observer);
-            console.log(`Tweet monitor initialized for ${container}`);
-
-            // Process any existing tweets
-            const existingTweets = container.querySelectorAll(
-                "ytd-compact-video-renderer, ytd-rich-item-renderer"
-            );
-            console.log(existingTweets);
-            existingTweets.forEach((tweet) => {
-                console.log(existingTweets.tagName);
-                if (isTweetElement(tweet)) {
-                    processTweet(tweet);
-                }
-            });
-        }
-    });
+        // Process any existing tweets
+        const existingTweets = container.querySelectorAll(
+            "ytd-compact-video-renderer, ytd-rich-item-renderer"
+        );
+        console.log(existingTweets);
+        existingTweets.forEach((tweet) => {
+            console.log(existingTweets.tagName);
+            if (isTweetElement(tweet)) {
+                processTweet(tweet);
+            }
+        });
+    }
 
     // If no containers found, try again soon
     if (activeObservers.length === 0) {
         setTimeout(initializeObservers, 1000);
     }
+
+    console.log(activeObservers)
 }
 
 // Monitor for URL changes
