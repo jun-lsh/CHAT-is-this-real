@@ -107,9 +107,10 @@ function createFormPopup(reportInfo) {
                 report_hash: await generateHash(),
                 platform_name: reportInfo["site"],
             };
-
+            let challenge = formData.pkey+formData.report_text+formData.report_type+formData.report_time+formData.report_hash+formData.platform_name
+            console.log("formData in form", challenge)
             let enc = new TextEncoder();
-            let encoded_text = enc.encode(JSON.stringify(message));
+            let encoded_text = enc.encode(challenge);
             let signature = await window.crypto.subtle.sign(
                 {
                     name: "ECDSA",
