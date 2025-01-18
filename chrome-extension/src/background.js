@@ -2,6 +2,111 @@ console.log("Background script running...");
 
 const backend_endpoint = "https://backend.juncheng03.workers.dev";
 
+// Utility function to convert hex string to ArrayBuffer
+function hexToArrayBuffer(hexString) {
+    const pairs = hexString.match(/[\dA-F]{2}/gi);
+    if (!pairs) return null;
+
+    const integers = pairs.map(s => parseInt(s, 16));
+    return new Uint8Array(integers).buffer;
+}
+
+// Import key from hex string
+async function importKeyFromHex(hexString, isPublic = true) {
+    try {
+        const keyData = hexToArrayBuffer(hexString);
+        if (!keyData) return null;
+
+        return await crypto.subtle.importKey(
+            isPublic ? "raw" : "pkcs8",
+            keyData,
+            {
+                name: "ECDSA",
+                namedCurve: "P-256"
+            },
+            true,
+            isPublic ? ["verify"] : ["sign"]
+        );
+    } catch (error) {
+        console.error('Error importing key:', error);
+        return null;
+    }
+}
+
+async function generateKeypair() {
+    try {
+        const keypair = await crypto.subtle.generateKey(
+            {
+                name: "ECDSA",
+                namedCurve: "P-256"
+            },
+            true,
+            ["sign", "verify"]
+        );
+
+        return {
+            privateKey: keypair.privateKey,
+            publicKey: keypair.publicKey
+        };
+    } catch (error) {
+        console.error('Error generating keypair:', error);
+        throw error;
+    }
+}
+
+(async () => {
+    let result = await chrome.storage.sync.get([
+        'privateKey',
+        'publicKey'
+    ]);
+
+    let importedprivateKey = await importKeyFromHex(result.privateKey, false);
+    let importedpublicKey = await importKeyFromHex(result.publicKey, true);
+
+    if (!(importedprivateKey && importedpublicKey)) {
+        const keys = await generateKeypair();
+
+        importedpublicKey = keys.publicKey;
+        importedprivateKey = keys.privateKey;
+
+        // Export keys to hex format for display
+        const exportedPublic = await crypto.subtle.exportKey("raw", window.cryptoKeys.publicKey);
+        const exportedPrivate = await crypto.subtle.exportKey("pkcs8", window.cryptoKeys.privateKey);
+
+        const settings = {
+            privateKey: arrayBufferToHex(exportedPrivate),
+            publicKey: arrayBufferToHex(exportedPublic),
+        };
+
+        chrome.storage.sync.set(settings, () => {
+            console.log("Generated new key-value pair");
+        });
+    }
+
+    result = await chrome.storage.sync.get([
+        'privateKey',
+        'publicKey'
+    ]);
+
+    let user = {
+        username: "mao zedong",
+        pkey: result.publicKey,
+        reputation: 100000000
+    };
+
+    console.log("Sending to user endpoint");
+
+    fetch(`${backend_endpoint}/users`, {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(user)
+    }).then(() => {
+        console.log("User endpoint called");
+    });
+})();
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'API_REQUEST') {
         let url = `${backend_endpoint}${message.endpoint}`;

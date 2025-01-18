@@ -1,3 +1,9 @@
+function arrayBufferToHex(buffer) {
+    return Array.from(new Uint8Array(buffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
 function createFormPopup(reportInfo) {
     // Function to inject CSS
     async function injectStyles() {
@@ -72,7 +78,7 @@ function createFormPopup(reportInfo) {
             }
         })
 
-        submitButton.addEventListener("click", () => {
+        submitButton.addEventListener("click", async () => {
             const reportValue = reportType.value;
             const message = messageInput.value.trim();
 
@@ -86,10 +92,37 @@ function createFormPopup(reportInfo) {
                 return;
             }
 
+            let {privateKey, publicKey} = await getKeys();
+            if (!(privateKey && publicKey)) {
+                alert("Your user identity keys are invalid or not yet generated! Please visit the settings page to generate new keys!");
+                return;
+            }
+            const exportedPublic = await window.crypto.subtle.exportKey("raw", publicKey);
+
             const formData = {
-                reportType: reportValue,
-                message: message,
+                pkey: arrayBufferToHex(exportedPublic),
+                report_text: message,
+                report_type: reportValue,
+                report_time: new Date().toISOString(),
+                report_hash: await generateHash(),
+                platform_name: reportInfo["site"],
             };
+
+            let enc = new TextEncoder();
+            let encoded_text = enc.encode(JSON.stringify(message));
+            let signature = await window.crypto.subtle.sign(
+                {
+                    name: "ECDSA",
+                    hash: {name: "SHA-384"},
+                },
+                privateKey,
+                encoded_text,
+            );
+
+            formData.signature = arrayBufferToHex(signature);
+
+            await apiRequestServiceWorker("POST", "/reports", null, formData);
+
             console.log("Form submitted:", formData);
             hidePopup();
             alert("Thank you for the report!")

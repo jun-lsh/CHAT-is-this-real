@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const importedprivateKey = await importKeyFromHex(result.privateKey, false);
             const importedpublicKey = await importKeyFromHex(result.publicKey, true);
 
-            if (privateKey && publicKey) {
+            if (importedprivateKey && importedpublicKey) {
                 // Store CryptoKey objects in window for later use
                 window.cryptoKeys = {
                     privateKey: importedprivateKey,

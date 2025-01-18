@@ -65,16 +65,56 @@ async function apiRequestServiceWorker(method, endpoint, params = null, body = n
 	});
 }
 
+// Utility function to convert hex string to ArrayBuffer
+function hexToArrayBuffer(hexString) {
+	const pairs = hexString.match(/[\dA-F]{2}/gi);
+	if (!pairs) return null;
+
+	const integers = pairs.map(s => parseInt(s, 16));
+	return new Uint8Array(integers).buffer;
+}
+
+// Import key from hex string
+async function importKeyFromHex(hexString, isPublic = true) {
+	try {
+		const keyData = hexToArrayBuffer(hexString);
+		if (!keyData) return null;
+
+		return await window.crypto.subtle.importKey(
+			isPublic ? "raw" : "pkcs8",
+			keyData,
+			{
+				name: "ECDSA",
+				namedCurve: "P-256"
+			},
+			true,
+			isPublic ? ["verify"] : ["sign"]
+		);
+	} catch (error) {
+		console.error('Error importing key:', error);
+		return null;
+	}
+}
+
+
 async function getKeys() {
 	let result = await chrome.storage.sync.get([
 		'privateKey',
 		'publicKey'
 	]);
 
-	return {
-		privateKey: result.privateKey,
-		publicKey: result.publicKey
-	};
+	console.log(result.privateKey);
+	console.log(result.publicKey);
+
+	const importedprivateKey = await importKeyFromHex(result.privateKey, false);
+	const importedpublicKey = await importKeyFromHex(result.publicKey, true);
+
+	if (importedprivateKey && importedpublicKey) {
+		return {
+			privateKey: importedprivateKey,
+			publicKey: importedpublicKey
+		};
+	}
 }
 
 async function digestMessage(message) {
