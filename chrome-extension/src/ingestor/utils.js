@@ -63,3 +63,15 @@ async function apiRequestServiceWorker(method, endpoint, params = null, body = n
 		);
 	});
 }
+
+async function getKeys() {
+	let result = await chrome.storage.sync.get([
+		'privateKey',
+		'publicKey'
+	]);
+
+	return {
+		privateKey: result.privateKey,
+		publicKey: result.publicKey
+	};
+}
