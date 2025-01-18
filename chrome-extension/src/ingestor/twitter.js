@@ -10,6 +10,32 @@ const observerConfig = {
 // Keep track of active observers
 let activeObservers = [];
 
+function addTextBoxUnderTweet(tweetNode, text) {
+    console.log("Called addTextBoxUnderTweet")
+    // Create a new div for our text box
+
+    const textBox = document.createElement('div');
+    const tweetId = Math.random().toString(36).substring(7);
+    textBox.id = `tweet-box-${tweetId}`;
+    console.log(textBox.id)
+    // Style the text box to match Twitter's design
+    textBox.style.cssText = `
+        padding: 12px;
+        margin: 8px 0;
+        border: 1px solid rgb(239, 243, 244);
+        border-radius: 16px;
+        font-size: 15px;
+        line-height: 20px;
+        color: rgb(83, 100, 113);
+        background-color: rgb(247, 249, 249);
+    `;
+    
+    // Add the text content
+    textBox.textContent = text;
+    
+    tweetNode.parentNode.insertBefore(textBox, tweetNode.parentNode.nextSibling);
+}
+
 // Function to process new tweets
 function processTweet(tweetElement) {
     // Check if we've already processed this tweet
@@ -39,6 +65,8 @@ function processTweet(tweetElement) {
         statusId,
         url: tweetLink ? tweetLink.href : null
     });
+
+    addTextBoxUnderTweet(tweetElement, '^ THIS POST IS 100% NOT MISINFORMATION!! ^');
 }
 
 // Function to identify tweet elements
