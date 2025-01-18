@@ -1,0 +1,23 @@
+{
+  "name": "backend",
+  "scripts": {
+    "db:generate": "bun drizzle-kit generate",
+    "db:migrate": "bun drizzle-kit migrate",
+    "db:studio": "bun drizzle-kit studio",
+    "dev": "wrangler dev --local ",
+    "deploy": "wrangler deploy --minify"
+  },
+  "dependencies": {
+    "@hono/swagger-ui": "^0.5.0",
+    "@hono/zod-openapi": "^0.18.3",
+    "drizzle-orm": "^0.38.4",
+    "hono": "^4.6.16",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "@types/node": "^22.10.7",
+    "drizzle-kit": "^0.30.2",
+    "wrangler": "^3.101.0"
+  }
+}
