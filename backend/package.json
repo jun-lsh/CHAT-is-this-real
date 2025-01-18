@@ -4,14 +4,20 @@
     "db:generate": "bun drizzle-kit generate",
     "db:migrate": "bun drizzle-kit migrate",
     "db:studio": "bun drizzle-kit studio",
-    "dev": "wrangler dev --local ",
-    "deploy": "wrangler deploy --minify"
+    "dev": "wrangler dev ",
+    "deploy": "wrangler deploy --minify",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@hono/swagger-ui": "^0.5.0",
     "@hono/zod-openapi": "^0.18.3",
+    "@types/jest": "^29.5.14",
+    "@types/supertest": "^6.0.2",
     "drizzle-orm": "^0.38.4",
     "hono": "^4.6.16",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
