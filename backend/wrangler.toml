@@ -16,7 +16,7 @@ compatibility_date = "2025-01-18"
 # bucket_name = "my-bucket"
 
 [[d1_databases]]
-binding = "DB"
+binding = "D1"
 database_name = "note_anything_db"
 database_id = "596ed2a2-c0ff-4c47-9f38-6546bc573381"
 migrations_dir = "drizzle/migrations"
