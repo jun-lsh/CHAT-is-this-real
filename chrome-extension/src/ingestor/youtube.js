@@ -17,17 +17,15 @@ function checkIsBad(hash) {
 
 function addReportInfoThumbnail(tweetNode, text) {  
     
-    ytimg = tweetNode.querySelector("yt-image");
+    let ytimg = tweetNode?.querySelector("#thumbnail")?.querySelector("yt-image");
 
 
     let newsrc = ytimg?.querySelector("img")?.src;
 
-    if (!newsrc) {
+    if (!ytimg?.prepend || !newsrc) {
         setTimeout(() => addReportInfoThumbnail(tweetNode, text), 100);
         return
     }
-    
-    if (!ytimg || !ytimg.prepend) return;
 
     img = document.createElement("img")
     img.className =
@@ -50,7 +48,7 @@ function addReportInfoThumbnail(tweetNode, text) {
     svg.setAttribute("stroke-linejoin", "round");
 
     svg.setAttribute("absolute", true);
-    svg.setAttribute("left", "32px");
+    svg.setAttribute("left", "24px");
     svg.setAttribute("top", "24px");
     
 
@@ -217,10 +215,12 @@ function handleMutations(mutations) {
         if (mutation.addedNodes && mutation.addedNodes.length > 0) {
             mutation.addedNodes.forEach((node) => {
                 // Check if the node is an element and matches our tweet criteria
-                if (isTweetElement(node)) {
-                    console.log("MUTATE", node);
-                    processTweet(node);
-                }
+                try {
+                    if (isTweetElement(node)) {
+                        console.log("MUTATE", node);
+                        processTweet(node);
+                    }
+                } catch {}  
             });
         }
     }
@@ -235,7 +235,17 @@ function cleanupObservers() {
 // Initialize observers for containers
 function initializeObservers() {
     for (let container of document.querySelectorAll('[id="contents"]')) {
-        const observer = new MutationObserver(handleMutations);
+        let len = container.querySelectorAll(
+            "ytd-compact-video-renderer, ytd-rich-item-renderer"
+        ).length;
+        console.log(
+            "CONTAINER",
+            container,
+            len
+        );
+        if (!len) continue
+        
+        let observer = new MutationObserver(handleMutations);
         observer.observe(container, observerConfig);
         activeObservers.push(observer);
         console.log("Tweet monitor initialized for", container);
