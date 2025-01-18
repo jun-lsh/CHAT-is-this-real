@@ -20,6 +20,7 @@ const ReportSchema = z.object({
   id: z.number(),
   user_id: z.number(),
   report_text: z.string(),
+  report_hash: z.string(),
   created_at: z.number(),
 })
 
@@ -57,4 +58,17 @@ const CreateReportVoteSchema = z.object({
 })
 
 
-export { HelloResponseSchema, UserSchema, ReportSchema, ReportVoteSchema, CreateUserSchema, CreateReportSchema, CreateReportVoteSchema }
+const GetReportVoteRatioSchema = z.object({
+    report_hash: z.string(),
+    upvote_ratio: z.number(),
+    downvote_ratio: z.number(),
+})
+
+const GetReportsWithHashSchema = z.object({
+    reports: z.array(z.object({
+        report_hash: z.string(),
+        count: z.number(),
+    })),
+})
+
+export { HelloResponseSchema, UserSchema, ReportSchema, ReportVoteSchema, CreateUserSchema, CreateReportSchema, CreateReportVoteSchema, GetReportVoteRatioSchema, GetReportsWithHashSchema }

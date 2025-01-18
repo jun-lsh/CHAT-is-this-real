@@ -1,4 +1,4 @@
-import { int, sqliteTable, text, uniqueIndex ,} from "drizzle-orm/sqlite-core";
+import { int, sqliteTable, text, index ,} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const users = sqliteTable("users", {
@@ -18,13 +18,14 @@ export const reports = sqliteTable("reports", {
   report_text: text("report_text").notNull(),
   created_at: int({mode: "timestamp_ms"}).default(sql`(CURRENT_TIMESTAMP)`),
 }, (table) => ({
-  report_hash_idx: uniqueIndex("report_hash_idx").on(table.report_hash),
+  report_hash_idx: index("report_hash_idx").on(table.report_hash),
 }));
 
 
 export const report_votes = sqliteTable("report_votes", {
   id: int().primaryKey({ autoIncrement: true }),
   report_id: int("report_id").references(() => reports.id, { onDelete: 'cascade' }),
+  report_hash: text("report_hash"),
   user_id: int("user_id").references(() => users.id, { onDelete: 'cascade' }),
   upvote: int("upvote").notNull(),
   downvote: int("downvote").notNull(),

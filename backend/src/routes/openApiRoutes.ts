@@ -1,6 +1,6 @@
 import { createRoute } from '@hono/zod-openapi'
 import { z } from 'zod'
-import { HelloResponseSchema, UserSchema, ReportSchema, ReportVoteSchema, CreateUserSchema, CreateReportSchema, CreateReportVoteSchema } from '../types/zod_schema'
+import { HelloResponseSchema, UserSchema, ReportSchema, ReportVoteSchema, CreateUserSchema, CreateReportSchema, CreateReportVoteSchema, GetReportsWithHashSchema, GetReportVoteRatioSchema } from '../types/zod_schema'
 
 // Create routes with OpenAPI specs
 const getHelloRoute = createRoute({
@@ -77,7 +77,7 @@ const getReportByIdRoute = createRoute({
   path: '/reports/{hash}',
   request: {
     params: z.object({
-      id: z.string(),
+      hash: z.string(),
     })
   },
   responses: {
@@ -262,6 +262,59 @@ const createReportVoteRoute = createRoute({
   }
 })
 
+const getReportVoteRatioRoute = createRoute({
+  method: 'get',
+  path: '/report_vote_ratio',
+  request: {
+    query: z.object({
+      target_hash: z.string()
+    })
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            report_hash: z.string(),
+            upvote_ratio: z.number(),
+            downvote_ratio: z.number()
+          })
+        }
+      },
+      description: 'Report vote ratio'
+    },
+    400: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            error: z.string()
+          })
+        }
+      },
+      description: 'Report not found'
+    }
+  }
+})
+
+const getReportsWithHashRoute = createRoute({
+  method: 'get',
+  path: '/reports_with_hash',
+  request: {
+    query: z.object({
+      hashes: z.string().array()
+    })
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: GetReportsWithHashSchema
+        }
+      },
+      description: 'List of all reports with hash'
+    }
+  }
+})
 
 
-export { getHelloRoute, getUsersRoute, getUserByIdRoute, getReportByIdRoute, getReportsRoute, createUserRoute, createReportRoute, deleteUserRoute, deleteReportRoute, getReportVotesRoute, createReportVoteRoute }
+export { getHelloRoute, getUsersRoute, getUserByIdRoute, getReportByIdRoute, getReportsRoute, createUserRoute, createReportRoute, deleteUserRoute, deleteReportRoute, getReportVotesRoute, createReportVoteRoute, getReportVoteRatioRoute, getReportsWithHashRoute }
