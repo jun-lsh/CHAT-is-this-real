@@ -51,6 +51,21 @@
       font-weight: 600;
     }
 
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-color);
+    }
+
+    .section-description {
+      font-size: 14px;
+      color: var(--text-color);
+      opacity: 0.8;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
     label {
       display: block;
       margin-bottom: 8px;
@@ -86,6 +101,12 @@
 
     button:hover {
       background-color: var(--hover-color);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
     }
 
     .switch-container {
@@ -139,6 +160,57 @@
       transform: translateX(24px);
     }
 
+    .key-info {
+      background-color: var(--input-bg);
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-color);
+    }
+
+    .key-info p {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .warning-option {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .warning-option input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
+      cursor: pointer;
+    }
+
+    .warning-option label {
+      cursor: pointer;
+      font-weight: normal;
+      margin-bottom: 0;
+      font-size: 14px;
+    }
+
+    .warning-category {
+      margin-bottom: 16px;
+    }
+
+    .warning-category h3 {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .warning-category p {
+      font-size: 13px;
+      color: var(--text-color);
+      opacity: 0.8;
+      margin-bottom: 8px;
+    }
+
     #savedMessage {
       display: none;
       color: #10b981;
@@ -151,6 +223,114 @@
     [data-theme="dark"] #savedMessage {
       background-color: #064e3b;
     }
+
+    .key-info svg {
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+      vertical-align: middle;
+      fill: var(--text-color);
+    }
+
+    .key-info p {
+      display: flex;
+      align-items: center;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .modal-content {
+      position: relative;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: var(--background-color);
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 400px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      animation: slideIn 0.2s ease-in-out;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: var(--text-color);
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--text-color);
+      padding: 0;
+      opacity: 0.7;
+    }
+
+    .modal-close:hover {
+      opacity: 1;
+    }
+
+    .modal-body {
+      margin-bottom: 16px;
+      color: var(--text-color);
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .modal-button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: var(--primary-color);
+      color: white;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .modal-button:hover {
+      background-color: var(--hover-color);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translate(-50%, -60%);
+        opacity: 0;
+      }
+      to {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -158,55 +338,92 @@
   <h1>Settings</h1>
 
   <div class="setting-group">
+    <h2 class="section-title">Your Identity</h2>
+    <div class="section-description">
+      Your unique identity on the platform is secured by a cryptographic key pair. This identity is used to verify your contributions and maintain your reputation score.
+    </div>
+
+    <div class="key-info">
+      <p>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v8"/>
+          <path d="M12 18h.01"/>
+        </svg>
+        <strong>Public Key:</strong> This is your public identifier. It is used to uniquely identify your submissions.
+      </p>
+      <p>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+        </svg>
+        <strong>Private Key:</strong> This is your secret key that proves your identity. Never share this with anyone.
+      </p>
+    </div>
+
     <label for="privateKey">Private Key:</label>
     <input type="text" id="privateKey" disabled spellcheck="false">
     <label for="publicKey">Public Key:</label>
     <input type="text" id="publicKey" disabled spellcheck="false">
-    <button id="regenerateKeys">Regenerate Keypair</button>
-    <div class="key-management" style="margin-top: 12px;">
+
+    <div class="button-group">
+      <button id="regenerateKeys">Regenerate Keypair</button>
       <button id="exportKeys">Export Keys</button>
       <button id="importKeys">Import Keys</button>
-      <input type="file" id="keyFileInput" accept=".json" style="display: none;">
+    </div>
+    <input type="file" id="keyFileInput" accept=".json" style="display: none;">
+  </div>
+
+  <div class="setting-group">
+    <h2 class="section-title">Content Filtering</h2>
+    <div class="section-description">
+      Customize how you want to handle potentially problematic content. You can choose to hide or show different types of flagged content based on your preferences.
+    </div>
+
+    <div class="content-warnings">
+      <div class="warning-category">
+        <h3>Misinformation</h3>
+        <p>Content that has been flagged by the community as potentially false or misleading information.</p>
+        <div class="warning-option">
+          <input type="checkbox" id="hideMisinformation" class="mr-2">
+          <label for="hideMisinformation">Hide content flagged as misinformation</label>
+        </div>
+      </div>
+
+      <div class="warning-category">
+        <h3>Trigger Warnings</h3>
+        <p>Content that may contain sensitive topics or potentially triggering material.</p>
+        <div class="warning-option">
+          <input type="checkbox" id="hideTrigger" class="mr-2">
+          <label for="hideTrigger">Hide content with trigger warnings</label>
+        </div>
+      </div>
+
+      <div class="warning-category">
+        <h3>Low Quality Content</h3>
+        <p>Content that has been flagged as spam, extremely low effort, or potentially harmful to community discourse.</p>
+        <div class="warning-option">
+          <input type="checkbox" id="hideSlop" class="mr-2">
+          <label for="hideSlop">Hide low-quality content</label>
+        </div>
+      </div>
+
+      <div class="warning-category">
+        <h3>Epilepsy Triggers</h3>
+        <p>Content that contains flashing lights, rapid movements, or other elements that might trigger photosensitive epilepsy.</p>
+        <div class="warning-option">
+          <input type="checkbox" id="hideEpilepsy" class="mr-2">
+          <label for="hideEpilepsy">Hide content with epilepsy triggers</label>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="setting-group">
-    <label for="exampleDropdown">Example Dropdown:</label>
-    <select id="exampleDropdown">
-      <option value="option1">Option 1</option>
-      <option value="option2">Option 2</option>
-      <option value="option3">Option 3</option>
-    </select>
-  </div>
-
-  <div class="setting-group">
-    <div class="switch-container">
-      <label for="exampleSwitch">Example Switch:</label>
-      <label class="switch">
-        <input type="checkbox" id="exampleSwitch">
-        <span class="slider"></span>
-      </label>
+    <h2 class="section-title">Display Preferences</h2>
+    <div class="section-description">
+      Customize the visual appearance of your extension interface.
     </div>
-  </div>
 
-  <div class="setting-group">
-    <div class="switch-container">
-      <label for="showDropdownSwitch">Show Optional Dropdown:</label>
-      <label class="switch">
-        <input type="checkbox" id="showDropdownSwitch">
-        <span class="slider"></span>
-      </label>
-    </div>
-    <div id="optionalDropdownContainer" style="display: none; margin-top: 16px;">
-      <select id="optionalDropdown">
-        <option value="opt1">Optional 1</option>
-        <option value="opt2">Optional 2</option>
-        <option value="opt3">Optional 3</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="setting-group">
     <div class="switch-container">
       <label for="darkModeSwitch">Dark Mode:</label>
       <label class="switch">
@@ -216,9 +433,25 @@
     </div>
   </div>
 
-  <button id="saveSettings">Save Settings</button>
+  <button id="saveSettings" style="margin-top: 24px;">Save Preferences</button>
   <div id="savedMessage">Settings saved successfully!</div>
 </div>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title">Import Status</h3>
+      <button id="modal-close" class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="modal-message"></p>
+    </div>
+    <div class="modal-footer">
+      <button id="modal-ok" class="modal-button">OK</button>
+    </div>
+  </div>
+</div>
+
 <script src="src/settings.js"></script>
 </body>
 </html>

@@ -1,3 +1,41 @@
+let originalSettings = {};
+let hasUnsavedChanges = false;
+
+// Utility function to get current settings
+function getCurrentSettings() {
+    return {
+        hideMisinformation: document.getElementById('hideMisinformation').checked,
+        hideTrigger: document.getElementById('hideTrigger').checked,
+        hideSlop: document.getElementById('hideSlop').checked,
+        hideEpilepsy: document.getElementById('hideEpilepsy').checked,
+        darkMode: document.getElementById('darkModeSwitch').checked
+    };
+}
+
+// Function to check if settings have changed
+function checkForChanges() {
+    const currentSettings = getCurrentSettings();
+
+    hasUnsavedChanges = false;
+    for (const key in currentSettings) {
+        if (currentSettings[key] !== originalSettings[key]) {
+            hasUnsavedChanges = true;
+            break;
+        }
+    }
+
+    // Show/hide save button based on changes
+    document.getElementById('saveSettings').style.display = hasUnsavedChanges ? 'block' : 'none';
+}
+
+// Add event listeners to all inputs
+function addChangeListeners() {
+    const inputs = document.querySelectorAll('input, select');
+    inputs.forEach(input => {
+        input.addEventListener('change', checkForChanges);
+    });
+}
+
 // Generate new keypair
 async function generateKeypair() {
     try {
@@ -58,15 +96,61 @@ async function importKeyFromHex(hexString, isPublic = true) {
     }
 }
 
+function showModal(title, message) {
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMessage = document.getElementById('modal-message');
+
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
+    modal.style.display = 'block';
+
+    // Close modal handlers
+    const closeModal = () => {
+        modal.style.display = 'none';
+    };
+
+    document.getElementById('modal-close').onclick = closeModal;
+    document.getElementById('modal-ok').onclick = closeModal;
+
+    // Close on outside click
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    };
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.style.display === 'block') {
+            closeModal();
+        }
+    });
+}
+
+
+function updateTheme(isDark) {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+}
+
+// Add event listener for dark mode toggle
+document.getElementById('darkModeSwitch').addEventListener('change', function(e) {
+    // Immediately update the theme
+    updateTheme(e.target.checked);
+
+    // Trigger change detection for the save button
+    checkForChanges();
+});
+
 // Load existing settings when page opens
 document.addEventListener('DOMContentLoaded', async () => {
     chrome.storage.sync.get([
         'privateKey',
         'publicKey',
-        'exampleDropdown',
-        'exampleSwitch',
-        'showDropdownSwitch',
-        'optionalDropdown',
+        'hideMisinformation',
+        'hideTrigger',
+        'hideSlop',
+        'hideEpilepsy',
         'darkMode'
     ], async (result) => {
         // Import stored keys if they exist
@@ -101,14 +185,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('privateKey').value = arrayBufferToHex(exportedPrivate) || '';
         document.getElementById('publicKey').value = arrayBufferToHex(exportedPublic) || '';
 
-        document.getElementById('exampleDropdown').value = result.exampleDropdown || 'option1';
-        document.getElementById('exampleSwitch').checked = result.exampleSwitch || false;
-        document.getElementById('showDropdownSwitch').checked = result.showDropdownSwitch || false;
-        document.getElementById('optionalDropdown').value = result.optionalDropdown || 'opt1';
-        document.getElementById('optionalDropdownContainer').style.display =
-            result.showDropdownSwitch ? 'block' : 'none';
+        // Load all other settings
+        document.getElementById('hideMisinformation').checked = result.hideMisinformation || false;
+        document.getElementById('hideTrigger').checked = result.hideTrigger || false;
+        document.getElementById('hideSlop').checked = result.hideSlop || false;
+        document.getElementById('hideEpilepsy').checked = result.hideEpilepsy || false;
+
         document.getElementById('darkModeSwitch').checked = result.darkMode || false;
-        document.documentElement.setAttribute('data-theme', result.darkMode ? 'dark' : 'light');
+        updateTheme(result.darkMode || false);
+
+        // Store original settings
+        originalSettings = getCurrentSettings();
+
+        // Initially hide save button
+        document.getElementById('saveSettings').style.display = 'none';
+
+        // Add change listeners
+        addChangeListeners();
     });
 });
 
@@ -128,6 +221,8 @@ document.getElementById('regenerateKeys').addEventListener('click', async () => 
         privateKey: keys.privateKey,
         publicKey: keys.publicKey
     };
+
+    checkForChanges();
 });
 
 // Export keys to file
@@ -176,7 +271,8 @@ document.getElementById('keyFileInput').addEventListener('change', async (event)
 
                 // Validate the imported data
                 if (!keyData.privateKey || !keyData.publicKey) {
-                    throw new Error('Invalid key file format');
+                    showModal('Error', 'Invalid key file format');
+                    return;
                 }
 
                 // Import the keys
@@ -212,35 +308,39 @@ document.getElementById('keyFileInput').addEventListener('change', async (event)
                     publicKey
                 };
 
-                alert('Keys imported successfully!');
+                showModal('Success', 'Keys imported successfully!');
+                checkForChanges();
             } catch (error) {
                 console.error('Error importing keys:', error);
-                alert('Failed to import keys. Please check the file format.');
+                showModal('Error', 'Failed to import keys. Please check the file format.');
             }
         };
         reader.readAsText(file);
     } catch (error) {
         console.error('Error reading file:', error);
-        alert('Failed to read file. Please try again.');
+        showModal('Error', 'Failed to read file. Please try again.');
     }
     // Clear the input so the same file can be selected again
     event.target.value = '';
 });
 
-// Save settings
+// Add beforeunload event listener
+window.addEventListener('beforeunload', (e) => {
+    if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = ''; // This shows the browser's default warning message
+    }
+});
+
+// Modify your save settings event listener
 document.getElementById('saveSettings').addEventListener('click', async () => {
-    // Export keys to hex format for display
     const exportedPublic = await window.crypto.subtle.exportKey("raw", window.cryptoKeys.publicKey);
     const exportedPrivate = await window.crypto.subtle.exportKey("pkcs8", window.cryptoKeys.privateKey);
 
     const settings = {
         privateKey: arrayBufferToHex(exportedPrivate),
         publicKey: arrayBufferToHex(exportedPublic),
-        exampleDropdown: document.getElementById('exampleDropdown').value,
-        exampleSwitch: document.getElementById('exampleSwitch').checked,
-        showDropdownSwitch: document.getElementById('showDropdownSwitch').checked,
-        optionalDropdown: document.getElementById('optionalDropdown').value,
-        darkMode: document.getElementById('darkModeSwitch').checked
+        ...getCurrentSettings()
     };
 
     chrome.storage.sync.set(settings, () => {
@@ -249,5 +349,10 @@ document.getElementById('saveSettings').addEventListener('click', async () => {
         setTimeout(() => {
             savedMessage.style.display = 'none';
         }, 2000);
+
+        // Update original settings and hide save button
+        originalSettings = getCurrentSettings();
+        hasUnsavedChanges = false;
+        document.getElementById('saveSettings').style.display = 'none';
     });
 });

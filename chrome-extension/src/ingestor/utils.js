@@ -96,6 +96,42 @@ async function importKeyFromHex(hexString, isPublic = true) {
 	}
 }
 
+/**
+ * Gets the user's content warning preferences from storage.
+ * Returns an object indicating which categories should be hidden.
+ * If showX is true, that category will be hidden (no warning shown).
+ * If showX is false, that category will be shown (warning displayed).
+ *
+ * @returns {Promise<Object>} An object containing boolean flags for each category
+ */
+async function getContentPreferences() {
+	try {
+		const result = await chrome.storage.sync.get([
+			'hideMisinformation',
+			'hideTrigger',
+			'hideSlop',
+			'hideEpilepsy'
+		]);
+
+		// Convert undefined values to false (show warnings by default)
+		return {
+			misinformation: result.hideMisinformation || false,
+			trigger: result.hideTrigger || false,
+			slop: result.hideSlop || false,
+			epilepsy: result.hideEpilepsy || false
+		};
+	} catch (error) {
+		console.error('Error getting content preferences:', error);
+		// Return default values if there's an error
+		return {
+			misinformation: false,
+			trigger: false,
+			slop: false,
+			epilepsy: false
+		};
+	}
+}
+
 
 async function getKeys() {
 	let result = await chrome.storage.sync.get([
