@@ -15,9 +15,6 @@ function addTextBoxUnderTweet(tweetNode, text) {
     // Create a new div for our text box
 
     const textBox = document.createElement('div');
-    const tweetId = Math.random().toString(36).substring(7);
-    textBox.id = `tweet-box-${tweetId}`;
-    console.log(textBox.id)
     // Style the text box to match Twitter's design
     textBox.style.cssText = `
         padding: 12px;
@@ -34,6 +31,64 @@ function addTextBoxUnderTweet(tweetNode, text) {
     textBox.textContent = text;
     
     tweetNode.parentNode.insertBefore(textBox, tweetNode.parentNode.nextSibling);
+}
+
+function addReportButtonToTweet(buttonNode){
+    const button = document.createElement("button");
+    // <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+    //   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.5 11.5 11 13l4-3.5M12 20a16.405 16.405 0 0 1-5.092-5.804A16.694 16.694 0 0 1 5 6.666L12 4l7 2.667a16.695 16.695 0 0 1-1.908 7.529A16.406 16.406 0 0 1 12 20Z"/>
+    // </svg>
+    
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "20");
+    svg.setAttribute("height", "20");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M9.5 11.5 11 13l4-3.5M12 20a16.405 16.405 0 0 1-5.092-5.804A16.694 16.694 0 0 1 5 6.666L12 4l7 2.667a16.695 16.695 0 0 1-1.908 7.529A16.406 16.406 0 0 1 12 20Z");
+    svg.appendChild(path);
+
+    button.className = 'custom-button';
+    // Add styles to head
+    const style = document.createElement('style');
+    style.textContent = `
+      .custom-button {
+        display: inline-flex;
+        align-items: center;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+      }
+      
+      .custom-button::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: rgba(255, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+      }
+      
+      .custom-button:hover::before {
+        transform: translate(-50%, -50%) scale(1);
+      }
+    `;
+    document.head.appendChild(style);
+    
+    button.className = 'custom-button';
+    button.appendChild(svg);
+    buttonNode.appendChild(button);
 }
 
 // Function to process new tweets
@@ -67,6 +122,10 @@ function processTweet(tweetElement) {
     });
 
     addTextBoxUnderTweet(tweetElement, '^ THIS POST IS 100% NOT MISINFORMATION!! ^');
+
+    var buttonDiv = tweetElement.querySelector('[data-testid="caret"]')
+    for(var _ = 0; _ < 4; _++) buttonDiv = buttonDiv.parentNode;
+    addReportButtonToTweet(buttonDiv);
 }
 
 // Function to identify tweet elements
