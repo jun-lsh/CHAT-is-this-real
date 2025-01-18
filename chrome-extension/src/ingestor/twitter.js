@@ -119,17 +119,19 @@ async function processTweetElements(tweetElementList) {
 
     console.log(`Processed tweet elements: ${tweetIdList.length}`)
 
-    // send a message to the service worker containing a list of all the tweets you want to check
-    const response = await apiRequestServiceWorker('POST', '/validate', { site: "twitter" }, tweetIdList);
-    if (response && response.data) {
-        // response.data is an array of tweet IDs that matched
-        const matchedIds = new Set(response.data);
+    if (tweetIdList.length > 0) {
+        // send a message to the service worker containing a list of all the tweets you want to check
+        const response = await apiRequestServiceWorker('POST', '/validate', {site: "twitter"}, tweetIdList);
+        if (response && response.data) {
+            // response.data is an array of tweet IDs that matched
+            const matchedIds = new Set(response.data);
 
-        tweetElementMap.forEach((item, tweetId) => {
-            if (matchedIds.has(tweetId)) {
-                addTextBoxUnderTweet(item.element, '^ THIS POST IS 100% MISINFORMATION!! ^');
-            }
-        });
+            matchedIds.forEach((tweetId, _) => {
+                if (tweetElementMap.has(tweetId)) {
+                    addTextBoxUnderTweet(tweetElementMap.get(tweetId).element, '^ THIS POST IS 100% MISINFORMATION!! ^');
+                }
+            });
+        }
     }
 }
 
