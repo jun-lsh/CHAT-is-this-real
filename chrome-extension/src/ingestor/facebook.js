@@ -134,6 +134,25 @@ function addReportButtonToTweet(tweetNode, tweetInfo){
 }
 
 
+function postDetails(href){
+    // For username (comes after facebook.com/)
+    const usernameRegex = /facebook\.com\/([^\/]+)/;
+
+    // For post ID (comes after /posts/ and before ?__cft__)
+    const postIdRegex = /\/posts\/([^?]+)/;
+    // Extract username
+    const username = href.match(usernameRegex)[1];  // "Malaysiakini"
+
+    // Extract post ID
+    const postId = href.match(postIdRegex)[1]; 
+
+    return {
+        "username": username,
+        "postId": postId, 
+        "hashVal": username+postId
+    }
+}
+
 // Function to process new tweets
 async function processTweet(tweetElement) {
     const MAX_RETRIES = 5;
@@ -162,7 +181,7 @@ async function processTweet(tweetElement) {
             tweetElement,
             "^ THIS POST IS 100% NOT MISINFORMATION!! ^"
         );
-        addReportButtonToTweet(tweetElement, {})
+        addReportButtonToTweet(tweetElement, postDetails(targetAnchor.getAttribute('href')))
     } else {
         var observer = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
@@ -184,7 +203,7 @@ async function processTweet(tweetElement) {
                                 tweetElement,
                                 "^ THIS POST IS 100% NOT MISINFORMATION!! ^"
                             );
-                            addReportButtonToTweet(tweetElement, {})
+                            addReportButtonToTweet(tweetElement, postDetails(targetAnchor.getAttribute('href')))
                             observer.disconnect();
                         }
                     }
