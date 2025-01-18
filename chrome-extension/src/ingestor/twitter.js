@@ -103,6 +103,7 @@ async function processTweetElements(tweetElementList) {
         if (isTweetElement(tweetElement)) {
             let result = processTweet(tweetElement);
             if (result) {
+                console.log(result)
                 var buttonDiv = tweetElement.querySelector('[data-testid="caret"]')
                 for(var _ = 0; _ < 4; _++) buttonDiv = buttonDiv.parentNode;
                 addReportButtonToTweet(buttonDiv, result);
@@ -233,10 +234,10 @@ function initializeObservers() {
             console.log(`Tweet monitor initialized for ${selector}`);
             
             // Process any existing tweets
-            const existingTweets = container.querySelectorAll('article');
-            processTweetElements(existingTweets).then(r => {
-                console.log(`existing tweets checked ${existingTweets.length}`);
-            });
+            // const existingTweets = container.querySelectorAll('article');
+            // processTweetElements(existingTweets).then(r => {
+            //     console.log(`existing tweets checked ${existingTweets.length}`);
+            // });
         }
     });
     
