@@ -3,12 +3,14 @@
     "name": "Censorship Maxxing",
     "permissions": [
       "activeTab",
-      "storage"
+      "storage",
+      "scripting"
     ],
     "content_scripts": [
       {
         "matches": ["https://www.x.com/*", "https://x.com/*"],
-        "js": ["./src/ingestor/twitter.js"]
+        "js": ["./src/ingestor/utils.js", "./src/ingestor/twitter.js"],
+        "run_at": "document_start"
       },
       {
         "matches": ["https://www.facebook.com/*", "https://facebook.com/*"],
