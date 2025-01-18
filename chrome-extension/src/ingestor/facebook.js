@@ -76,7 +76,7 @@ function addReportButtonToTweet(tweetNode, tweetInfo){
         border: none;
         background: transparent;
         cursor: pointer;
-        position: relative;
+        position: absolute;
         transition: all 0.2s ease;
       }
       
@@ -120,9 +120,16 @@ function addReportButtonToTweet(tweetNode, tweetInfo){
     curr = curr.childNodes[12].childNodes[0].childNodes[0].childNodes[1].childNodes[0]
     if(curr.childNodes.length > 4) return
 
-    // const buttonContainer = document.createElement('div');
-    // buttonContainer.
-    curr.appendChild(button);
+    let buttonContainer = document.createElement('div');
+
+    buttonContainer.style.width = "36px";
+    buttonContainer.style.height = "36px";
+    buttonContainer.style.display = "flex";
+    buttonContainer.style.justifyContent = "center";
+    buttonContainer.style.alignItems = "center";
+
+    buttonContainer.appendChild(button);
+    curr.appendChild(buttonContainer);
     // buttonNode
 }
 
