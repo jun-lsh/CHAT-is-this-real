@@ -22,6 +22,8 @@ const ReportSchema = z.object({
   report_text: z.string(),
   report_hash: z.string(),
   created_at: z.number(),
+  platform_name: z.string(),
+  report_type: z.string(),
 })
 
 // Request body schemas

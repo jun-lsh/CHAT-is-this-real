@@ -56,6 +56,8 @@ app.openapi(getReportByIdRoute, async (c) => {
       report_hash: reports.report_hash,
       report_text: reports.report_text,
       created_at: reports.created_at,
+      platform_name: reports.platform_name,
+      report_type: reports.report_type,
       upvote: sql<number>`COALESCE(upvote, 0)`,
       downvote: sql<number>`COALESCE(downvote, 0)`
     }
@@ -73,6 +75,8 @@ app.openapi(getReportsRoute, async (c) => {
     user_id: report.user_id!,
     report_text: report.report_text,
     report_hash: report.report_hash,
+    platform_name: report.platform_name,
+    report_type: report.report_type,
     created_at: Number(report.created_at)
   }))
   return c.json(response)
