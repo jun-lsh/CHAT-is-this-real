@@ -10,47 +10,48 @@ const observerConfig = {
 // Keep track of active observers
 let activeObservers = [];
 
-function addTextBoxUnderTweet(tweetNode, text, offset = false) {
-    // console.log("Called addTextBoxUnderTweet");
-    // Create a new div for our text box
-    // if(tweetNode.parentNode.childNodes.first == tweetNode){console.log("first kid")}
-    const textBox = document.createElement("div");
-    const tweetId = Math.random().toString(36).substring(7);
-    textBox.id = `tweet-box-${tweetId}`;
-    // console.log(textBox.id);
-    // Style the text box to match Twitter's design
-    textBox.style.cssText = `
-        padding: 12px;
-        margin: 8px;
-        border: 1px solid rgb(239, 243, 244);
-        border-radius: 16px;
-        font-size: 15px;
-        line-height: 20px;
-        color: rgb(83, 100, 113);
-        background-color: rgb(247, 249, 249);
-    `;
-    // console.log(tweetNode)
-    // Add the text content
-    textBox.textContent = text;
+async function addTextBoxUnderTweet(tweetNode, warningType, customMessage = '', offset = false) {
+    
+    var curr = null;
+
     if (!offset) {
-        var curr = tweetNode.childNodes[0]
+        curr = tweetNode.childNodes[0]
         for (var _ = 0; _ < 11; _++) {
 
             if (curr.childNodes.length == 1) curr = curr.childNodes[0]
             else curr = curr.childNodes[1]
         }
         if (curr.childNodes.length > 1) return
-        curr.appendChild(textBox);
+        // curr.appendChild(textBox);
     } else {
-        var curr = tweetNode.childNodes[0]
+        curr = tweetNode.childNodes[0]
         for (var _ = 0; _ < 8; _++) {
             curr = curr.childNodes[0]
         }
         console.log(curr)
         if (curr.childNodes.length > 1) return
-        curr.appendChild(textBox);
+        // curr.appendChild(textBox);
     }
 
+    const createWarning = createWarningElement(warningType, customMessage);
+    const warningElement = await createWarning();
+
+    if (warningElement) {
+        // Create a container and insert the warning
+        const warningContainer = document.createElement('div');
+        warningContainer.appendChild(warningElement);
+
+        // Insert after the tweet
+        if (curr.childNodes.length > 1) return
+        curr.appendChild(warningContainer, tweetNode.nextSibling);
+
+        // Check if dark mode is enabled and apply theme
+        chrome.storage.sync.get(['darkMode'], (result) => {
+            if (result.darkMode) {
+                warningContainer.setAttribute('data-theme', 'dark');
+            }
+        });
+    }
 
 }
 
@@ -236,7 +237,7 @@ async function processTweet(tweetElement, offset = false) {
         targetAnchor.dispatchEvent(event);
 
         var observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
+            mutations.forEach(async function(mutation) {
               if (mutation.type === "attributes") {
                 console.log("attributes changed");
                 console.log(mutation.target.getAttribute('href'))
@@ -244,13 +245,13 @@ async function processTweet(tweetElement, offset = false) {
                 if(deets){
                     observer.disconnect()
                     console.log("Printing", deets)
-                    addTextBoxUnderTweet(
+                    addReportButtonToTweet(tweetElement, deets, offset)
+                    await addTextBoxUnderTweet(
                         tweetElement,
-                        "^ THIS POST IS 100% NOT MISINFORMATION!! ^",
+                        "misinformation",
+                        "",
                         offset
                     );
-                    addReportButtonToTweet(tweetElement, deets, offset)
-                    
                 }
               }
               
@@ -293,20 +294,21 @@ async function processTweet(tweetElement, offset = false) {
                         //     observer.disconnect();
                         // }
                         var observer2 = new MutationObserver(function(mutations) {
-                            mutations.forEach(function(mutation) {
+                            mutations.forEach(async function(mutation) {
                               if (mutation.type === "attributes") {
                                 console.log("attributes changed");
                                 console.log(mutation.target.getAttribute('href'))
                                 var deets = postDetails(mutation.target.getAttribute('href'))
                                 if(deets){
+                                    observer.disconnect()
                                     console.log(deets)
-                                    addTextBoxUnderTweet(
+                                    addReportButtonToTweet(tweetElement, deets, offset)
+                                    await addTextBoxUnderTweet(
                                         tweetElement,
-                                        "^ THIS POST IS 100% NOT MISINFORMATION!! ^",
+                                        "misinformation",
+                                        "",
                                         offset
                                     );
-                                    addReportButtonToTweet(tweetElement, deets, offset)
-                                    observer.disconnect()
                                 }
                               }
                               
