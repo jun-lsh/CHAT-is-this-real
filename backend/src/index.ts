@@ -3,8 +3,10 @@ import { users, reports, report_votes } from '../db/schema';
 import { swaggerUI } from '@hono/swagger-ui'
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { eq, inArray ,count, sql, and} from 'drizzle-orm'
-import { verifySignature } from './utils';
+import { hexToArrayBuffer, importKeyFromHex, Verification, verifySignature } from './utils';
+import { verify } from './middleware';
 import { getHelloRoute, getUsersRoute, getUserByIdRoute, getReportByIdRoute, getReportsRoute, createUserRoute, createReportRoute, deleteUserRoute, deleteReportRoute, createReportVoteRoute, getReportVotesRoute , getReportVoteRatioRoute, getReportsWithHashRoute} from './routes/openApiRoutes'
+import { arrayBuffer, json } from 'stream/consumers';
 type Env = {
   D1: D1Database
   ENV_TYPE : 'dev' | 'prod'
@@ -24,6 +26,9 @@ app.doc('/doc', {
 
 app.get("/ui", swaggerUI({ url: "/doc" }));
 
+
+
+// app.use("*", verify)
 
 app.openapi(getHelloRoute, (c) => {
   return c.text('Hello note anything!')
@@ -97,6 +102,11 @@ app.openapi(createReportRoute, async (c) => {
   const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, body.pkey)).get()
   const report = await db(c.env.D1).select().from(reports).where(eq(reports.report_hash, body.report_hash)).get()
   let newReport;
+  
+ 
+  if (!await Verification(body)) {
+    return c.json({ error: 'verification failed' }, 400)
+  }
 
   if (!user) {
     return c.json({ error: 'User not found' }, 404)
@@ -108,6 +118,7 @@ app.openapi(createReportRoute, async (c) => {
     }).where(and(eq(reports.report_hash, body.report_hash), eq(reports.user_id, user.id))).returning()
   } 
   else {
+    const report_time = new Date(body.report_time).getTime()
     newReport = await db(c.env.D1)
       .insert(reports)
       .values({
@@ -166,6 +177,9 @@ app.openapi(getReportVotesRoute, async (c) => {
 
 app.openapi(createReportVoteRoute, async (c) => {
   const body = await c.req.json()
+  if (!await Verification(body)) {
+    return c.json({ error: 'verification failed' }, 400)
+  }
   const report = await db(c.env.D1).select().from(reports).where(eq(reports.report_hash, body.report_hash)).get()
   if (!report) return c.json({ error: 'Report not found' }, 404)
   const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, body.pkey)).get()

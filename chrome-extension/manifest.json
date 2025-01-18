@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Censorship Maxxing",
     "host_permissions": [
-      "https://backend.juncheng03.workers.dev/*"
+      "http://localhost:8787/*"
     ],
     "permissions": [
       "activeTab",
