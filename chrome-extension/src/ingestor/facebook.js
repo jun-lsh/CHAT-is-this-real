@@ -11,13 +11,13 @@ const observerConfig = {
 let activeObservers = [];
 
 function addTextBoxUnderTweet(tweetNode, text) {
-    console.log("Called addTextBoxUnderTweet");
+    // console.log("Called addTextBoxUnderTweet");
     // Create a new div for our text box
-
+    // if(tweetNode.parentNode.childNodes.first == tweetNode){console.log("first kid")}
     const textBox = document.createElement("div");
     const tweetId = Math.random().toString(36).substring(7);
     textBox.id = `tweet-box-${tweetId}`;
-    console.log(textBox.id);
+    // console.log(textBox.id);
     // Style the text box to match Twitter's design
     textBox.style.cssText = `
         padding: 12px;
@@ -32,60 +32,182 @@ function addTextBoxUnderTweet(tweetNode, text) {
 
     // Add the text content
     textBox.textContent = text;
-
-    // lile button
-    let curr = tweetNode.querySelector('path[d="M15.543 3.043a1 1 0 1 1 1.414 1.414L11.414 10l5.543 5.542a1 1 0 0 1-1.414 1.415L10 11.414l-5.543 5.543a1 1 0 0 1-1.414-1.415L8.586 10 3.043 4.457a1 1 0 1 1 1.414-1.414L10 8.586l5.543-5.543z"]');
+    var curr = tweetNode.childNodes[0]
     
-    for (let i = 0; i < 6; i++) {
-        curr = curr.parentNode;
+    for(var _ = 0; _ < 11; _++) {
+        // console.log(_)
+        // if(curr.childNodes.length == 0){
+        //     console.log(curr)
+        // }
+        curr = curr.childNodes[0]
     }
-
+    if(curr.childNodes.length > 1) return
     curr.appendChild(textBox);
-    
+
 }
 
-// Function to process new tweets
-function processTweet(tweetElement) {
-    // Check if we've already processed this tweet
-    if (tweetElement.dataset.processed) {
-        return;
+function addReportButtonToTweet(tweetNode, tweetInfo){
+    const button = document.createElement("button");
+    // <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+    //   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.5 11.5 11 13l4-3.5M12 20a16.405 16.405 0 0 1-5.092-5.804A16.694 16.694 0 0 1 5 6.666L12 4l7 2.667a16.695 16.695 0 0 1-1.908 7.529A16.406 16.406 0 0 1 12 20Z"/>
+    // </svg>
+    
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "20");
+    svg.setAttribute("height", "20");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M9.5 11.5 11 13l4-3.5M12 20a16.405 16.405 0 0 1-5.092-5.804A16.694 16.694 0 0 1 5 6.666L12 4l7 2.667a16.695 16.695 0 0 1-1.908 7.529A16.406 16.406 0 0 1 12 20Z");
+    svg.appendChild(path);
+
+    button.className = 'custom-button';
+    // Add styles to head
+    const style = document.createElement('style');
+    style.textContent = `
+      .custom-button {
+        display: inline-flex;
+        align-items: center;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        position: absolute;
+        transition: all 0.2s ease;
+      }
+      
+      .custom-button::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        width: 24px;
+        height: 24px;
+        padding: 8px;
+        border-radius: 50%;
+        background-color: rgba(255, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+      }
+      
+      .custom-button:hover::before {
+        transform: translate(-50%, -50%) scale(1);
+      }
+    `;
+    document.head.appendChild(style);
+    
+    button.className = 'custom-button';
+    button.appendChild(svg);
+
+    const showPopup = createFormPopup(tweetInfo);
+    button.addEventListener("click", showPopup);
+
+
+    var curr = tweetNode.childNodes[0]
+    
+    for(var _ = 0; _ < 12; _++) {
+        // console.log(_)
+        // if(curr.childNodes.length == 0){
+        //     console.log(curr)
+        // }
+        curr = curr.childNodes[0]
     }
 
-    // Mark the tweet as processed to avoid duplicates
-    tweetElement.dataset.processed = "true";
+    curr = curr.childNodes[12].childNodes[0].childNodes[0].childNodes[1].childNodes[0]
+    if(curr.childNodes.length > 4) return
 
-    // Extract username (handle)
-    const usernameElement = tweetElement.querySelector(
-        'div[data-testid="User-Name"] a'
+    let buttonContainer = document.createElement('div');
+
+    buttonContainer.style.width = "36px";
+    buttonContainer.style.height = "36px";
+    buttonContainer.style.display = "flex";
+    buttonContainer.style.justifyContent = "center";
+    buttonContainer.style.alignItems = "center";
+
+    buttonContainer.appendChild(button);
+    curr.appendChild(buttonContainer);
+    // buttonNode
+}
+
+
+// Function to process new tweets
+async function processTweet(tweetElement) {
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY = 1000;
+
+    const findTargetAnchor = () => Array.from(tweetElement.getElementsByTagName('a')).find(a =>
+        a.hasAttribute('attributionsrc') &&
+        a.classList.contains('x1i10hfl') &&
+        a.getAttribute('role') === 'link' &&
+        a.getAttribute('target') === '_blank'
     );
-    const username = usernameElement
-        ? usernameElement.textContent.trim()
-        : null;
 
-    // Extract timestamp and status ID from the tweet link
-    const timestampElement = tweetElement.querySelector("time");
-    const timestamp = timestampElement
-        ? timestampElement.getAttribute("datetime")
-        : null;
+    var targetAnchor = findTargetAnchor();
+    if (targetAnchor) {
+        console.log("came widdit")
+        var event = new FocusEvent('focusin', {
+            'view': window,
+            'bubbles': true,
+            'cancelable': true
+        });
 
-    // Get status ID from the tweet URL
-    const tweetLink = tweetElement.querySelector('a[href*="/status/"]');
-    const statusId = tweetLink
-        ? tweetLink.href.match(/\/status\/(\d+)/)?.[1]
-        : null;
+        targetAnchor.dispatchEvent(event);
+        console.log(targetAnchor)
+        await new Promise(resolve => setTimeout(resolve, 200));
+        addTextBoxUnderTweet(
+            tweetElement,
+            "^ THIS POST IS 100% NOT MISINFORMATION!! ^"
+        );
+        addReportButtonToTweet(tweetElement, {})
+    } else {
+        var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                // console.log(mutation.type);
+                if (mutation.type != "childList") {
+                    targetAnchor = findTargetAnchor()
+                    // console.log(tweetElement, targetAnchor)
+                    if (targetAnchor) {
+                        var event = new FocusEvent('focusin', {
+                            'view': window,
+                            'bubbles': true,
+                            'cancelable': true
+                        });
 
-    // Log the extracted data
-    console.log("New tweet detected:", {
-        username,
-        timestamp,
-        statusId,
-        url: tweetLink ? tweetLink.href : null,
-    });
+                        targetAnchor.dispatchEvent(event);
+                        console.log(targetAnchor)
+                        if(!targetAnchor.getAttribute('href').includes("l.facebook.com")){
+                            addTextBoxUnderTweet(
+                                tweetElement,
+                                "^ THIS POST IS 100% NOT MISINFORMATION!! ^"
+                            );
+                            addReportButtonToTweet(tweetElement, {})
+                            observer.disconnect();
+                        }
+                    }
+                }
+            });
+        });
 
-    addTextBoxUnderTweet(
-        tweetElement,
-        "^ THIS POST IS 100% NOT MISINFORMATION!! ^"
-    );
+        if (targetAnchor) observer.disconnect()
+        //   while (!targetAnchor && retryCount < MAX_RETRIES) {
+        //     if (!targetAnchor) {
+        //       console.log(`Attempt ${retryCount + 1}/${MAX_RETRIES}: Anchor not found, retrying in ${RETRY_DELAY}ms...`);
+        //       await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        //       retryCount++;
+        //     }
+        //   }
+        //   observer.disconnect()
+        // configuration of the observer:
+        var config = { attributes: true, childList: true, characterData: true, subtree: true };
+
+        // pass in the target node, as well as the observer options
+        observer.observe(tweetElement, config);
+
+    }
 }
 
 // Function to identify tweet elements
@@ -108,7 +230,7 @@ function handleMutations(mutations) {
                     }
 
                     // Check children for tweets (in case tweets are nested in added containers)
-                    const tweetElements = node.querySelectorAll("article");
+                    const tweetElements = node.querySelectorAll("[class='x1lliihq']");
                     tweetElements.forEach((tweetElement) => {
                         if (isTweetElement(tweetElement)) {
                             processTweet(tweetElement);
@@ -117,6 +239,16 @@ function handleMutations(mutations) {
                 }
             });
         }
+
+        if (mutation.removedNodes && mutation.removedNodes.length > 0) {
+            var target = mutation.target
+            if (target.nodeType == Node.ELEMENT_NODE) {
+                if (isTweetElement(target)) {
+                    target.parentNode.removeChild(target)
+                }
+            }
+        }
+
     }
 }
 
@@ -151,10 +283,10 @@ function initializeObservers() {
 
             return
         }
-    } 
+    }
 
 
-    
+
     setTimeout(initializeObservers, 1000);
 }
 
