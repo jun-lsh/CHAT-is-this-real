@@ -192,7 +192,7 @@ app.openapi(createReportVoteRoute, async (c) => {
   const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, body.pkey)).get()
   if (!user) return c.json({ error: 'User not found' }, 404)
   
-  const report = await db(c.env.D1).select().from(reports).where(and(eq(reports.report_hash, body.report_hash), eq(reports.user_id, user.id))).get()
+  const report = await db(c.env.D1).select().from(reports).where(eq(reports.report_hash, body.report_hash)).get()
   if (!report) return c.json({ error: 'Report not found' }, 404)
 
   const newReportVote = await db(c.env.D1)
