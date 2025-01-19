@@ -1,11 +1,11 @@
 import { db } from '../db/db';
-import { users, reports, report_votes } from '../db/schema';
+import { users, reports, report_votes, user_groups, user_group_kv } from '../db/schema';
 import { swaggerUI } from '@hono/swagger-ui'
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { eq, inArray ,count, sql, and} from 'drizzle-orm'
 import { hexToArrayBuffer, importKeyFromHex, Verification, verifySignature } from './utils';
 import { verify } from './middleware';
-import { getHelloRoute, getUsersRoute, getUserByIdRoute, getReportByIdRoute, getReportsRoute, createUserRoute, createReportRoute, deleteUserRoute, deleteReportRoute, createReportVoteRoute, getReportVotesRoute , getReportVoteRatioRoute, getReportsWithHashRoute} from './routes/openApiRoutes'
+import { getHelloRoute, getUsersRoute, getUserByIdRoute, getReportByIdRoute, getReportsRoute, createUserRoute, createReportRoute, deleteUserRoute, deleteReportRoute, createReportVoteRoute, getReportVotesRoute , getReportVoteRatioRoute, getReportsWithHashRoute, createUserGroupRoute, addUserToGroupRoute, getUserGroupsRoute, getReportsByTypeRoute} from './routes/openApiRoutes'
 import { arrayBuffer, json } from 'stream/consumers';
 type Env = {
   D1: D1Database
@@ -62,7 +62,7 @@ app.openapi(getReportByIdRoute, async (c) => {
       downvote: sql<number>`COALESCE(downvote, 0)`
     }
 
-  ).from(reports).leftJoin(report_votes, eq(reports.report_hash, report_votes.report_hash)).where(eq(reports.report_hash, hash)).all()
+  ).from(reports).leftJoin(report_votes, eq(reports.id, report_votes.report_id)).where(eq(reports.report_hash, hash)).all()
   if (!report) return c.json({ error: 'Report not found' }, 404)
   return c.json(report)
 })
@@ -104,25 +104,25 @@ app.openapi(createUserRoute, async (c) => {
 app.openapi(createReportRoute, async (c) => {
   const body = await c.req.json()
   const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, body.pkey)).get()
+  if (!user) return c.json({ error: 'User not found' }, 404)
   const report = await db(c.env.D1).select().from(reports).where(eq(reports.report_hash, body.report_hash)).get()
+  const userExistingReport = await db(c.env.D1).select().from(reports).where(and(eq(reports.report_hash, body.report_hash), eq(reports.user_id, user.id))).get()
   let newReport;
   
  
-  if (!await Verification(body)) {
-    return c.json({ error: 'verification failed' }, 400)
-  }
+  // if (!await Verification(body)) {
+  //   return c.json({ error: 'verification failed' }, 400)
+  // }
 
   if (!user) {
     return c.json({ error: 'User not found' }, 404)
   }
-  else if (user && report) {
-    console.log("report update")
+  else if (userExistingReport) {
     newReport = await db(c.env.D1).update(reports).set({
       report_text: body.report_text,
     }).where(and(eq(reports.report_hash, body.report_hash), eq(reports.user_id, user.id))).returning()
   } 
   else {
-    const report_time = new Date(body.report_time).getTime()
     newReport = await db(c.env.D1)
       .insert(reports)
       .values({
@@ -141,7 +141,8 @@ app.openapi(createReportRoute, async (c) => {
     report_text: newReport[0].report_text,
     created_at: Number(newReport[0].created_at),
     platform_name: newReport[0].platform_name,
-    report_hash: newReport[0].report_hash
+    report_hash: newReport[0].report_hash,
+    report_type: newReport[0].report_type
   }
   
   return c.json(response, 201)
@@ -157,9 +158,12 @@ app.openapi(deleteUserRoute, async (c) => {
 
 app.openapi(deleteReportRoute, async (c) => {
   const hash = String(c.req.param('hash'))
-  const report = await db(c.env.D1).select().from(reports).where(eq(reports.report_hash, hash)).get()
+  const pkey = String(c.req.param('pkey'))
+  const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, pkey)).get()
+  if (!user) return c.json({ error: 'User not found' }, 404)
+  const report = await db(c.env.D1).select().from(reports).where(and(eq(reports.report_hash, hash), eq(reports.user_id, user.id))).get()
   if (!report) return c.json({ error: 'Report not found' }, 404)
-  await db(c.env.D1).delete(reports).where(eq(reports.report_hash, hash))
+  await db(c.env.D1).delete(reports).where(and(eq(reports.report_hash, hash), eq(reports.user_id, user.id)))
   return c.json({ message: 'Report deleted successfully' })
 })
 
@@ -181,13 +185,14 @@ app.openapi(getReportVotesRoute, async (c) => {
 
 app.openapi(createReportVoteRoute, async (c) => {
   const body = await c.req.json()
-  if (!await Verification(body)) {
-    return c.json({ error: 'verification failed' }, 400)
-  }
-  const report = await db(c.env.D1).select().from(reports).where(eq(reports.report_hash, body.report_hash)).get()
-  if (!report) return c.json({ error: 'Report not found' }, 404)
+  // if (!await Verification(body)) {
+  //   return c.json({ error: 'verification failed' }, 400)
+  // }
+
   const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, body.pkey)).get()
   if (!user) return c.json({ error: 'User not found' }, 404)
+  const report = await db(c.env.D1).select().from(reports).where(and(eq(reports.report_hash, body.report_hash), eq(reports.user_id, user.id))).get()
+  if (!report) return c.json({ error: 'Report not found' }, 404)
   const newReportVote = await db(c.env.D1)
     .insert(report_votes)
     .values({
@@ -207,13 +212,13 @@ app.openapi(getReportVoteRatioRoute, async (c) => {
   const report = await db(c.env.D1).select(
     {
       report_hash: reports.report_hash,
-      total_upvotes: sql<number>`SUM(COALESCE(upvote, 0))`,
-      total_downvotes: sql<number>`SUM(COALESCE(downvote, 0))`,
-      upvote_ratio: sql<number>`COALESCE(CAST(SUM(COALESCE(upvote, 0)) AS FLOAT) / NULLIF(SUM(COALESCE(upvote, 0)) + SUM(COALESCE(downvote, 0)), 0) * 100, 0)`,
-      downvote_ratio: sql<number>`COALESCE(CAST(SUM(COALESCE(downvote, 0)) AS FLOAT) / NULLIF(SUM(COALESCE(upvote, 0)) + SUM(COALESCE(downvote, 0)), 0) * 100, 0)`
+      total_upvotes: sql<number>`SUM(COALESCE(report_votes.upvote, 0))`,
+      total_downvotes: sql<number>`SUM(COALESCE(report_votes.downvote, 0))`,
+      upvote_ratio: sql<number>`COALESCE(CAST(SUM(COALESCE(report_votes.upvote, 0)) AS FLOAT) / NULLIF(SUM(COALESCE(report_votes.upvote, 0)) + SUM(COALESCE(report_votes.downvote, 0)), 0) * 100, 0)`,
+      downvote_ratio: sql<number>`COALESCE(CAST(SUM(COALESCE(report_votes.downvote, 0)) AS FLOAT) / NULLIF(SUM(COALESCE(report_votes.upvote, 0)) + SUM(COALESCE(report_votes.downvote, 0)), 0) * 100, 0)`
     }
   ).from(reports)
-   .leftJoin(report_votes, eq(reports.report_hash, report_votes.report_hash))
+   .leftJoin(report_votes, eq(reports.id, report_votes.report_id))
    .where(eq(reports.report_hash, target_hash))
    .groupBy(reports.report_hash)
    .get()
@@ -233,6 +238,47 @@ app.openapi(getReportsWithHashRoute, async (c) => {
     count: report.count
   }))
   return c.json({reports: response})
+})
+
+
+
+// app.openapi(getReportsByTypeRoute, async (c) => {
+//   const type = c.req.query('type')
+//   const reportsList = await db(c.env.D1).select().from(reports).where(eq(reports.report_type, type))
+//   return c.json({reports: reportsList})
+  
+// })
+
+
+
+app.openapi(createUserGroupRoute, async (c) => {
+  try {
+    const body = await c.req.json()
+    const newUserGroup = await db(c.env.D1).insert(user_groups).values(body).returning()
+    return c.json(newUserGroup[0], 201)
+  } catch (error: any) {
+    if (error.message?.includes('UNIQUE constraint failed')) {
+      return c.json({ error: 'Group already exists' }, 401)
+    }
+    throw error
+  }
+})  
+
+app.openapi(addUserToGroupRoute, async (c) => {
+  const body = await c.req.json()
+  const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, body.pkey)).get()
+  if (!user) return c.json({ error: 'User not found' }, 404)
+  const group = await db(c.env.D1).select().from(user_groups).where(eq(user_groups.group_name, body.group_name)).get()
+  if (!group) return c.json({ error: 'Group not found' }, 404)
+  const userInGroup = await db(c.env.D1).select().from(user_group_kv).where(and(eq(user_group_kv.group_id, group.id), eq(user_group_kv.user_id, user.id))).get()
+  if (userInGroup) return c.json({ error: 'User already in group' }, 401)
+  const newUserGroup = await db(c.env.D1).insert(user_group_kv).values({user_id: user.id, group_id: group.id}).returning()
+  return c.json(newUserGroup[0], 201)
+})
+
+app.openapi(getUserGroupsRoute, async (c) => {
+  const userGroups = await db(c.env.D1).select().from(user_groups)
+  return c.json({groups: userGroups})
 })
 
 export default app
