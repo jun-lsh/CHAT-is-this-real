@@ -43,7 +43,8 @@ function createWarningElement(type, customMessage = '') {
 
             // Set the warning message
             const description = warningElement.querySelector('.ext-warning-description');
-            description.textContent = customMessage || warningMessages[type];
+            description.textContent = warningMessages[type];
+            if(customMessage) description.textContent = warningMessages[type] + "\n" + customMessage;
 
             return warningElement;
         } catch (error) {

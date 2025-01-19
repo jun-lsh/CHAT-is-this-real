@@ -400,7 +400,7 @@ let updateIntervalId;
 
 function initializeCountUpdates() {
     // Start periodic updates every 30 seconds
-    updateIntervalId = startPeriodicUpdates(30000);
+    updateIntervalId = startPeriodicUpdates(3000);
 
     // Add cleanup on window unload
     window.addEventListener('unload', () => {
