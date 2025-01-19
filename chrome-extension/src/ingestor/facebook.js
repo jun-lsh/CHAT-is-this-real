@@ -675,8 +675,20 @@ function setupURLMonitoring() {
 let updateIntervalId;
 
 function initializeCountUpdates() {
+    const site_key = window.location.href;
+    let dataobj = {};
+    dataobj[site_key] = 0;
+
+    chrome.storage.sync.set(dataobj).then(() => {
+        console.log("Updated filtered count in storage:", dataobj[site_key]);
+        // Reset global counter after successful update
+        globalFilteredCount = 0;
+    }).catch((error) => {
+        console.error("Error updating filtered count:", error);
+    });
+
     // Start periodic updates every 30 seconds
-    updateIntervalId = startPeriodicUpdates(1000);
+    updateIntervalId = startPeriodicUpdates(2000);
 
     // Add cleanup on window unload
     window.addEventListener('unload', () => {
