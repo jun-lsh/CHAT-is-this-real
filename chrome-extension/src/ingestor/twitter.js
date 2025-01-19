@@ -7,6 +7,57 @@ const observerConfig = {
     attributes: true,   // Don't watch for attribute changes
 };
 
+// Global variable to track filtered count between updates
+let globalFilteredCount = 0;
+
+// Function to update the filtered count
+function updateFilteredCount(additionalCount = 0) {
+    globalFilteredCount += additionalCount;
+    const site_key = window.location.href;
+
+    // Update storage with accumulated count
+    chrome.storage.sync.get([site_key]).then((result) => {
+        console.log("Current count for site:", result[site_key]);
+
+        let dataobj = {};
+        if (result[site_key]) {
+            dataobj[site_key] = result[site_key] + globalFilteredCount;
+        } else {
+            dataobj[site_key] = globalFilteredCount;
+        }
+
+        chrome.storage.sync.set(dataobj).then(() => {
+            console.log("Updated filtered count in storage:", dataobj[site_key]);
+            // Reset global counter after successful update
+            globalFilteredCount = 0;
+        }).catch((error) => {
+            console.error("Error updating filtered count:", error);
+        });
+    }).catch((error) => {
+        console.error("Error reading current count:", error);
+    });
+}
+
+// Function to start periodic updates
+function startPeriodicUpdates(intervalInMs = 1000) { // Default 30 seconds
+    // Initial update
+    updateFilteredCount();
+
+    // Set up periodic updates
+    return setInterval(() => {
+        updateFilteredCount();
+    }, intervalInMs);
+}
+
+// Function to stop periodic updates
+function stopPeriodicUpdates(intervalId) {
+    if (intervalId) {
+        clearInterval(intervalId);
+        // Final update to ensure no counts are lost
+        updateFilteredCount();
+    }
+}
+
 // Keep track of active observers
 let activeObservers = [];
 
@@ -124,29 +175,78 @@ async function processTweetElements(tweetElementList) {
                         info: result
                     }
                 );
-
-                await addWarningUnderTweet(tweetElement, 'misinformation');
             }
         }
     }
 
     console.log(`Processed tweet elements: ${tweetIdList.length}`)
 
-    // if (tweetIdList.length > 0) {
-    //     // send a message to the service worker containing a list of all the tweets you want to check
-    //     const response = await apiRequestServiceWorker('POST', '/validate', {site: "twitter"}, tweetIdList);
-    //     if (response && response.data) {
-    //         // response.data is an array of tweet IDs that matched
-    //         const matchedIds = new Set(response.data);
-    //
-    //         matchedIds.forEach((tweetId, _) => {
-    //             if (tweetElementMap.has(tweetId)) {
-    //                 const warningType = response.data.find(item => item.id === tweetId).type || 'misinformation';
-    //                 addWarningUnderTweet(tweetElementMap.get(tweetId).element, warningType);
-    //             }
-    //         });
-    //     }
-    // }
+    let filtered_count = 0;
+
+    if (tweetElementMap.length > 0) {
+        // For every tweet in the list, query the server for a list of reports concerning the tweet
+        let types = ["misinformation", "trigger", "slop", "epilepsy"];
+        let threshold_votes = 5;
+        let remove_threshold = 8.0;
+
+        let prefs = await getContentPreferences();
+
+        for (id in tweetElementMap.keys()) {
+            let tweetinfo = tweetElementMap.get(id);
+
+            const digestBuffer = await digestMessage(tweetinfo.info["hashVal"]);
+            let hash = tweetinfo.info["site"] + "_" + digestBuffer;
+            let response = await apiRequestServiceWorker('GET', '/reports/' + hash);
+
+            if (response && response.data) {
+                let max_ratio = [0.0, 0.0, 0.0, 0.0];
+                let upvotes = [0, 0, 0, 0];
+
+                response.data.forEach((reports, _) => {
+                    for (let i = 0;i < types.length;i++) {
+                        if (reports.report_type === types[i] && (reports.upvote + reports.downvote) > threshold_votes) {
+                            upvotes[i] += reports.upvote;
+
+                            if ((reports.upvote + reports.downvote) > threshold_votes)
+                                max_ratio[i] = Math.max(reports.upvote / (reports.downvote + reports.upvote), max_ratio[i]);
+                        }
+                    }
+                });
+
+                if ((prefs.misinformation && max_ratio[0] > remove_threshold)
+                    || (prefs.trigger && max_ratio[1] > remove_threshold)
+                    || (prefs.slop && max_ratio[2] > remove_threshold)
+                    || (prefs.epilepsy && max_ratio[3] > remove_threshold)
+                ) {
+                    // hide post
+                    filtered_count += 1;
+
+                    tweetinfo.element.parentNode.removeChild(tweetinfo.element);
+                } else {
+                    let flag_category = "none";
+                    let max_upvotes = 0;
+                    for (let i = 0;i < types.length;i++) {
+                        if (max_ratio[i] > remove_threshold) {
+                            if (upvotes[i] > max_upvotes) {
+                                max_upvotes = upvotes[i];
+                                flag_category = types[i];
+                            }
+                        }
+                    }
+
+                    if (flag_category !== "none") {
+                        await addWarningUnderTweet(tweetElementMap.get(tweetId).element, flag_category);
+                    }
+                }
+            }
+        }
+    }
+
+    let site_key = window.location.href;
+
+    if (filtered_count > 0) {
+        updateFilteredCount(filtered_count);
+    }
 }
 
 // Function to process new tweets
@@ -281,10 +381,24 @@ function setupURLMonitoring() {
     });
 }
 
+// Initialize periodic updates when the extension loads
+let updateIntervalId;
+
+function initializeCountUpdates() {
+    // Start periodic updates every 30 seconds
+    updateIntervalId = startPeriodicUpdates(1000);
+
+    // Add cleanup on window unload
+    window.addEventListener('unload', () => {
+        stopPeriodicUpdates(updateIntervalId);
+    });
+}
+
 // Initialize when the page is ready
 function initialize() {
     initializeObservers();
     setupURLMonitoring();
+    initializeCountUpdates();
 }
 
 if (document.readyState === 'loading') {
