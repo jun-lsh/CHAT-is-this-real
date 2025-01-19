@@ -202,13 +202,17 @@ async function processTweetElements(tweetElementList) {
                 let max_ratio = [0.0, 0.0, 0.0, 0.0];
                 let upvotes = [0, 0, 0, 0];
 
+                let category_text = ["", "", "", ""];
+
                 response.data.forEach((reports, _) => {
                     for (let i = 0;i < types.length;i++) {
-                        if (reports.report_type === types[i] && (reports.upvote + reports.downvote) > threshold_votes) {
+                        if (reports.report_type === types[i]) {
                             upvotes[i] += reports.upvote;
 
-                            if ((reports.upvote + reports.downvote) > threshold_votes)
+                            if ((reports.upvote + reports.downvote) > threshold_votes) {
                                 max_ratio[i] = Math.max(reports.upvote / (reports.downvote + reports.upvote), max_ratio[i]);
+                                category_text[i] = reports.report_text;
+                            }
                         }
                     }
                 });
@@ -224,18 +228,20 @@ async function processTweetElements(tweetElementList) {
                     tweetinfo.element.parentNode.removeChild(tweetinfo.element);
                 } else {
                     let flag_category = "none";
+                    let flag_text = "";
                     let max_upvotes = 0;
                     for (let i = 0;i < types.length;i++) {
                         if (max_ratio[i] > remove_threshold) {
                             if (upvotes[i] > max_upvotes) {
                                 max_upvotes = upvotes[i];
                                 flag_category = types[i];
+                                flag_text = category_text[i];
                             }
                         }
                     }
 
                     if (flag_category !== "none") {
-                        await addWarningUnderTweet(tweetElementMap.get(tweetId).element, flag_category);
+                        await addWarningUnderTweet(tweetElementMap.get(tweetId).element, flag_category, flag_text);
                     }
                 }
             }
