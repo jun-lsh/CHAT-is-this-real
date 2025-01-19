@@ -169,7 +169,7 @@ function createFormPopup(reportInfo) {
     
         // Create vote counter
         const voteCount = document.createElement('span');
-        let votes = report['upvote'] - report['downvote'];
+        var votes = report['upvote'] - report['downvote'];
         voteCount.textContent = votes;
         voteCount.style.margin = '0 8px';
     
@@ -234,10 +234,11 @@ function createFormPopup(reportInfo) {
         popup.style.display = 'block';
 
         const reportContainer = document.getElementById("reportContainer");
+        reportContainer.innerHTML = ''
         const reportView = document.getElementById("reportView");
 
         let reports = response["data"];
-
+        reports = [...new Map(reports.map(item => [item.id, item])).values()]
         if (!reports.length) {
             reportView.style.display = "none";
         } else {

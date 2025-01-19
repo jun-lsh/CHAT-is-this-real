@@ -1,5 +1,56 @@
 // content.js
 
+// Global variable to track filtered count between updates
+let globalFilteredCount = 0;
+
+// Function to update the filtered count
+function updateFilteredCount(additionalCount = 0) {
+    globalFilteredCount += additionalCount;
+    const site_key = window.location.href;
+
+    // Update storage with accumulated count
+    chrome.storage.sync.get([site_key]).then((result) => {
+        console.log("Current count for site:", result[site_key]);
+
+        let dataobj = {};
+        if (result[site_key]) {
+            dataobj[site_key] = result[site_key] + globalFilteredCount;
+        } else {
+            dataobj[site_key] = globalFilteredCount;
+        }
+
+        chrome.storage.sync.set(dataobj).then(() => {
+            console.log("Updated filtered count in storage:", dataobj[site_key]);
+            // Reset global counter after successful update
+            globalFilteredCount = 0;
+        }).catch((error) => {
+            console.error("Error updating filtered count:", error);
+        });
+    }).catch((error) => {
+        console.error("Error reading current count:", error);
+    });
+}
+
+// Function to start periodic updates
+function startPeriodicUpdates(intervalInMs = 1000) { // Default 30 seconds
+    // Initial update
+    updateFilteredCount();
+
+    // Set up periodic updates
+    return setInterval(() => {
+        updateFilteredCount();
+    }, intervalInMs);
+}
+
+// Function to stop periodic updates
+function stopPeriodicUpdates(intervalId) {
+    if (intervalId) {
+        clearInterval(intervalId);
+        // Final update to ensure no counts are lost
+        updateFilteredCount();
+    }
+}
+
 // Configuration for the observer
 const observerConfig = {
     childList: true, // Watch for children being added or removed
@@ -11,7 +62,7 @@ const observerConfig = {
 let activeObservers = [];
 
 async function addTextBoxUnderTweet(tweetNode, warningType, customMessage = '', offset = false) {
-    
+
     var curr = null;
 
     if (!offset) {
@@ -208,6 +259,8 @@ function postDetails(href) {
 
 // Function to process new tweets
 async function processTweet(tweetElement, offset = false) {
+    let tweetIdList = [];
+    let tweetElementMap = new Map();
     const MAX_RETRIES = 5;
     const RETRY_DELAY = 1000;
 
@@ -236,38 +289,46 @@ async function processTweet(tweetElement, offset = false) {
 
         targetAnchor.dispatchEvent(event);
 
-        var observer = new MutationObserver(function(mutations) {
-            mutations.forEach(async function(mutation) {
-              if (mutation.type === "attributes") {
-                console.log("attributes changed");
-                console.log(mutation.target.getAttribute('href'))
-                var deets = postDetails(mutation.target.getAttribute('href'))
-                if(deets){
-                    observer.disconnect()
-                    console.log("Printing", deets)
-                    addReportButtonToTweet(tweetElement, deets, offset)
-                    await addTextBoxUnderTweet(
-                        tweetElement,
-                        "misinformation",
-                        "",
-                        offset
-                    );
+        var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(async function (mutation) {
+                if (mutation.type === "attributes") {
+                    console.log("attributes changed");
+                    console.log(mutation.target.getAttribute('href'))
+                    var deets = postDetails(mutation.target.getAttribute('href'))
+                    if (deets) {
+                        observer.disconnect()
+                        console.log("Printing", deets)
+                        addReportButtonToTweet(tweetElement, deets, offset)
+                        // await addTextBoxUnderTweet(
+                        //     tweetElement,
+                        //     "misinformation",
+                        //     "",
+                        //     offset
+                        // );
+                        tweetElement.dataset.processed = 'true';
+                        tweetIdList.push(deets.hashVal);
+                        tweetElementMap.set(deets.hashVal,
+                            {
+                                element: tweetElement,
+                                info: deets
+                            }
+                        );
+                    }
                 }
-              }
-              
-            //   console.log(mutation.target);
+
+                //   console.log(mutation.target);
             });
-          });
-          
+        });
+
         observer.observe(targetAnchor, {
-        attributes: true //configure it to listen to attribute changes
+            attributes: true //configure it to listen to attribute changes
         });
 
         // console.log(targetAnchor.parentNode.childNodes[0].getAttribute('href'))
         // targetAnchor = findTargetAnchor2()
-        
+
         // await new Promise(resolve => setTimeout(resolve, 200));
-        
+
     } else {
         var observer = new MutationObserver(function (mutations) {
             mutations.forEach(async function (mutation) {
@@ -293,31 +354,39 @@ async function processTweet(tweetElement, offset = false) {
                         //     addReportButtonToTweet(tweetElement, postDetails(targetAnchor.getAttribute('href')), offset)
                         //     observer.disconnect();
                         // }
-                        var observer2 = new MutationObserver(function(mutations) {
-                            mutations.forEach(async function(mutation) {
-                              if (mutation.type === "attributes") {
-                                console.log("attributes changed");
-                                console.log(mutation.target.getAttribute('href'))
-                                var deets = postDetails(mutation.target.getAttribute('href'))
-                                if(deets){
-                                    observer.disconnect()
-                                    console.log(deets)
-                                    addReportButtonToTweet(tweetElement, deets, offset)
-                                    await addTextBoxUnderTweet(
-                                        tweetElement,
-                                        "misinformation",
-                                        "",
-                                        offset
-                                    );
+                        var observer2 = new MutationObserver(function (mutations) {
+                            mutations.forEach(async function (mutation) {
+                                if (mutation.type === "attributes") {
+                                    console.log("attributes changed");
+                                    console.log(mutation.target.getAttribute('href'))
+                                    var deets = postDetails(mutation.target.getAttribute('href'))
+                                    if (deets) {
+                                        observer.disconnect()
+                                        console.log(deets)
+                                        addReportButtonToTweet(tweetElement, deets, offset)
+                                        // await addTextBoxUnderTweet(
+                                        //     tweetElement,
+                                        //     "misinformation",
+                                        //     "",
+                                        //     offset
+                                        // );
+                                        tweetElement.dataset.processed = 'true';
+                                        tweetIdList.push(deets.hashVal);
+                                        tweetElementMap.set(deets.hashVal,
+                                            {
+                                                element: tweetElement,
+                                                info: deets
+                                            }
+                                        );
+                                    }
                                 }
-                              }
-                              
-                            //   console.log(mutation.target);
+
+                                //   console.log(mutation.target);
                             });
-                          });
-                          
+                        });
+
                         observer2.observe(targetAnchor, {
-                        attributes: true //configure it to listen to attribute changes
+                            attributes: true //configure it to listen to attribute changes
                         });
                     }
                 }
@@ -331,6 +400,83 @@ async function processTweet(tweetElement, offset = false) {
         observer.observe(tweetElement, config);
 
     }
+
+    let filtered_count = 0;
+
+    if (tweetElementMap.size > 0) {
+        // For every tweet in the list, query the server for a list of reports concerning the tweet
+        let types = ["misinformation", "trigger", "slop", "epilepsy"];
+        let threshold_votes = 5;
+        let remove_threshold = 0.6;
+
+        let prefs = await getContentPreferences();
+
+        for (id of tweetElementMap.keys()) {
+            let tweetinfo = tweetElementMap.get(id);
+
+            const digestBuffer = await digestMessage(tweetinfo.info["hashVal"]);
+            let hash = tweetinfo.info["site"] + "_" + digestBuffer;
+            let response = await apiRequestServiceWorker('GET', '/reports/' + hash);
+
+            if (response && response.data) {
+                let max_ratio = [0.0, 0.0, 0.0, 0.0];
+                let upvotes = [0, 0, 0, 0];
+
+                let category_text = ["", "", "", ""];
+
+                response.data.forEach((reports, _) => {
+                    for (let i = 0;i < types.length;i++) {
+                        if (reports.report_type === types[i]) {
+                            upvotes[i] += reports.upvote;
+
+                            if ((reports.upvote + reports.downvote) > threshold_votes) {
+                                max_ratio[i] = Math.max(reports.upvote / (reports.downvote + reports.upvote), max_ratio[i]);
+                                category_text[i] = reports.report_text;
+                            }
+                        }
+                    }
+                });
+
+                if ((prefs.misinformation && max_ratio[0] > remove_threshold)
+                    || (prefs.trigger && max_ratio[1] > remove_threshold)
+                    || (prefs.slop && max_ratio[2] > remove_threshold)
+                    || (prefs.epilepsy && max_ratio[3] > remove_threshold)
+                ) {
+                    // hide post
+                    filtered_count += 1;
+
+                    tweetinfo.element.parentNode.removeChild(tweetinfo.element);
+                } else {
+                    let flag_category = "none";
+                    let flag_text = "";
+                    let max_upvotes = 0;
+                    for (let i = 0;i < types.length;i++) {
+                        if (max_ratio[i] > remove_threshold) {
+                            if (upvotes[i] > max_upvotes) {
+                                max_upvotes = upvotes[i];
+                                flag_category = types[i];
+                                flag_text = category_text[i];
+                            }
+                        }
+                    }
+
+                    if (flag_category !== "none") {
+                        // await addWarningUnderTweet(tweetElementMap.get(tweetId).element, flag_category);
+                        await addTextBoxUnderTweet(
+                            tweetElementMap.get(tweetId).element,
+                            flag_category,
+                            flag_text,
+                            offset
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    if (filtered_count > 0) {
+        updateFilteredCount(filtered_count);
+    }
 }
 
 // Function to identify tweet elements
@@ -340,7 +486,7 @@ function isTweetElement(element) {
     else {
         var curr = element.childNodes[0]
         for (var _ = 0; _ < 9; _++) {
-            if(!curr) return false
+            if (!curr) return false
             if (!curr.childNodes) return false
             curr = curr.childNodes[0]
         }
@@ -522,6 +668,19 @@ function setupURLMonitoring() {
     urlObserver.observe(document, {
         subtree: true,
         childList: true,
+    });
+}
+
+// Initialize periodic updates when the extension loads
+let updateIntervalId;
+
+function initializeCountUpdates() {
+    // Start periodic updates every 30 seconds
+    updateIntervalId = startPeriodicUpdates(1000);
+
+    // Add cleanup on window unload
+    window.addEventListener('unload', () => {
+        stopPeriodicUpdates(updateIntervalId);
     });
 }
 

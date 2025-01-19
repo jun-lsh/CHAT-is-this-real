@@ -169,6 +169,7 @@ async function processTweetElements(tweetElementList) {
                 addReportButtonToTweet(buttonDiv, result);
                 tweetElement.dataset.processed = 'true';
                 tweetIdList.push(result.statusId);
+
                 tweetElementMap.set(result.statusId,
                     {
                         element:tweetElement,
@@ -178,45 +179,50 @@ async function processTweetElements(tweetElementList) {
             }
         }
     }
-
-    console.log(`Processed tweet elements: ${tweetIdList.length}`)
+    console.log(tweetElementMap)
+    console.log(`Processed tweet elements: ${tweetIdList.length}, ${tweetElementMap.size}`)
 
     let filtered_count = 0;
 
-    if (tweetElementMap.length > 0) {
+    if (tweetElementMap.size > 0) {
+        console.log(tweetElementMap.keys())
         // For every tweet in the list, query the server for a list of reports concerning the tweet
         let types = ["misinformation", "trigger", "slop", "epilepsy"];
         let threshold_votes = 5;
-        let remove_threshold = 8.0;
+        let remove_threshold = 0.6;
 
         let prefs = await getContentPreferences();
 
-        for (id in tweetElementMap.keys()) {
+        for (id of tweetElementMap.keys()) {
             let tweetinfo = tweetElementMap.get(id);
-
+            console.log("Fetch", id, tweetinfo.info["hashVal"])
             const digestBuffer = await digestMessage(tweetinfo.info["hashVal"]);
+            console.log(id, "digest", digestBuffer)
             let hash = tweetinfo.info["site"] + "_" + digestBuffer;
+            console.log(id, "hash", hash)
             let response = await apiRequestServiceWorker('GET', '/reports/' + hash);
-
+            console.log(id, "AWAIT RESPONSE", response)
             if (response && response.data) {
                 let max_ratio = [0.0, 0.0, 0.0, 0.0];
                 let upvotes = [0, 0, 0, 0];
 
                 let category_text = ["", "", "", ""];
-
+                console.log("REPORTS RECEIVED", id, response)
                 response.data.forEach((reports, _) => {
                     for (let i = 0;i < types.length;i++) {
                         if (reports.report_type === types[i]) {
                             upvotes[i] += reports.upvote;
-
+                            console.log(reports)
                             if ((reports.upvote + reports.downvote) > threshold_votes) {
+                                console.log("THRESHOLD", id, i, reports)
                                 max_ratio[i] = Math.max(reports.upvote / (reports.downvote + reports.upvote), max_ratio[i]);
                                 category_text[i] = reports.report_text;
                             }
                         }
                     }
                 });
-
+                console.log(id, "MAX", max_ratio)
+                console.log(id, "PREFS", prefs)
                 if ((prefs.misinformation && max_ratio[0] > remove_threshold)
                     || (prefs.trigger && max_ratio[1] > remove_threshold)
                     || (prefs.slop && max_ratio[2] > remove_threshold)
@@ -230,6 +236,7 @@ async function processTweetElements(tweetElementList) {
                     let flag_category = "none";
                     let flag_text = "";
                     let max_upvotes = 0;
+                    console.log("VALS", id, upvotes, category_text, types, remove_threshold)
                     for (let i = 0;i < types.length;i++) {
                         if (max_ratio[i] > remove_threshold) {
                             if (upvotes[i] > max_upvotes) {
@@ -239,9 +246,10 @@ async function processTweetElements(tweetElementList) {
                             }
                         }
                     }
-
+                    console.log(id, flag_category, "FLAG1", max_ratio, max_upvotes)
                     if (flag_category !== "none") {
-                        await addWarningUnderTweet(tweetElementMap.get(tweetId).element, flag_category, flag_text);
+                        console.log(id, flag_category, "FLAG")//, tweetElementMap.get(tweetId))
+                        await addWarningUnderTweet(tweetElementMap.get(id).element, flag_category, flag_text);
                     }
                 }
             }
@@ -392,7 +400,7 @@ let updateIntervalId;
 
 function initializeCountUpdates() {
     // Start periodic updates every 30 seconds
-    updateIntervalId = startPeriodicUpdates(1000);
+    updateIntervalId = startPeriodicUpdates(30000);
 
     // Add cleanup on window unload
     window.addEventListener('unload', () => {
