@@ -49,7 +49,7 @@ function createFormPopup(reportInfo) {
         const repUrl = document.getElementById("reportName");
         if(reportInfo['site'] == 'fb') repUrl.innerHTML = "Reporting: " + reportInfo['username'] + "'s post on Facebook"
         else if(reportInfo['site'] == 'tw') repUrl.innerHTML = "Reporting: " + reportInfo['username'] + "'s post on Twitter"
-        else if(reportInfo['site'] == 'yt') repUrl.innerHTML = "Reporting: " + reportInfo['username']
+        else if(reportInfo['site'] == 'yt') repUrl.innerHTML = "Reporting: " + reportInfo['display']
 
         const repHash = document.getElementById("reportHash");
         repHash.innerHTML = "Hash: " + siteHash
