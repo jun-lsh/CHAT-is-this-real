@@ -10,11 +10,20 @@ chrome.storage.sync.get(['publicKey'], (result) => {
 
 chrome.storage.sync.onChanged.addListener((changes, namespace) => {
     for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
-        
-        if(key == window.location.href){
-            const count = document.getElementById('counter-value');
-            count.textContent = newValue;
-        }
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            const currentUrl = tabs[0].url;
+            // Now you can use currentUrl as needed
+            console.log(currentUrl);
+
+            if(key === currentUrl){
+                const count = document.querySelector('.counter-value');
+                if (count) {
+                    count.textContent = newValue;
+                } else {
+                    console.warn('Counter element not found in DOM');
+                }
+            }
+        });
         
       console.log(
         `Storage key "${key}" in namespace "${namespace}" changed.`,
