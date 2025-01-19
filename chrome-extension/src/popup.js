@@ -13,7 +13,7 @@ chrome.storage.sync.onChanged.addListener((changes, namespace) => {
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
             const currentUrl = tabs[0].url;
             // Now you can use currentUrl as needed
-            console.log(currentUrl);
+            console.log("cock", currentUrl);
 
             if(key === currentUrl){
                 const count = document.querySelector('.counter-value');
