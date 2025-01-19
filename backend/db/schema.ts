@@ -1,4 +1,4 @@
-import { int, sqliteTable, text, index ,} from "drizzle-orm/sqlite-core";
+import { int, sqliteTable, text, index, uniqueIndex ,} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { platform } from "os";
 
@@ -33,7 +33,11 @@ export const report_votes = sqliteTable("report_votes", {
   upvote: int("upvote").notNull(),
   downvote: int("downvote").notNull(),
   created_at: int({mode: "timestamp_ms"}).default(sql`(CURRENT_TIMESTAMP)`),
-});
+}, (table) => {
+  return {
+    uniqueIndex: uniqueIndex('report_votes_unique_idx').on(table.report_id, table.user_id)
+  }
+} );
 
 
 export const user_group_kv = sqliteTable("user_group_kv", {

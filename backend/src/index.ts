@@ -191,8 +191,10 @@ app.openapi(createReportVoteRoute, async (c) => {
 
   const user = await db(c.env.D1).select().from(users).where(eq(users.pkey, body.pkey)).get()
   if (!user) return c.json({ error: 'User not found' }, 404)
+  
   const report = await db(c.env.D1).select().from(reports).where(and(eq(reports.report_hash, body.report_hash), eq(reports.user_id, user.id))).get()
   if (!report) return c.json({ error: 'Report not found' }, 404)
+
   const newReportVote = await db(c.env.D1)
     .insert(report_votes)
     .values({
@@ -202,7 +204,15 @@ app.openapi(createReportVoteRoute, async (c) => {
       upvote: body.upvote,
       downvote: body.downvote,
     })
+    .onConflictDoUpdate({
+      target: [report_votes.report_id, report_votes.user_id],
+      set: {
+        upvote: body.upvote,
+        downvote: body.downvote,
+      }
+    })
     .returning()
+
   return c.json(newReportVote[0], 201)
 })
 
