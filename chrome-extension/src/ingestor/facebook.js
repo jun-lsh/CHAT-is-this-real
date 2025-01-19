@@ -298,7 +298,8 @@ async function processTweet(tweetElement, offset = false) {
                     if (deets) {
                         observer.disconnect()
                         console.log("Printing", deets)
-                        addReportButtonToTweet(tweetElement, deets, offset)
+                        await addReportButtonToTweet(tweetElement, deets, offset)
+                        //await addTextBoxUnderTweet(tweetElement, deets, "", offset)
                         // await addTextBoxUnderTweet(
                         //     tweetElement,
                         //     "misinformation",
@@ -306,6 +307,7 @@ async function processTweet(tweetElement, offset = false) {
                         //     offset
                         // );
                         tweetElement.dataset.processed = 'true';
+                        console.log("HELP ME NOW2", deets);
                         tweetIdList.push(deets.hashVal);
                         tweetElementMap.set(deets.hashVal,
                             {
@@ -313,6 +315,90 @@ async function processTweet(tweetElement, offset = false) {
                                 info: deets
                             }
                         );
+
+                        let filtered_count = 0;
+
+                        console.log("DOES IT EVEN GET HERE", tweetElementMap.size);
+
+                        console.log("DOES IT EVEN GET HERE 2");
+                        // For every tweet in the list, query the server for a list of reports concerning the tweet
+                        let types = ["misinformation", "trigger", "slop", "epilepsy"];
+                        let threshold_votes = 5;
+                        let remove_threshold = 0.6;
+
+                        let prefs = await getContentPreferences();
+                        let id = deets.hashVal;
+
+                        let tweetinfo = {
+                            element: tweetElement,
+                            info: deets
+                        };
+                        console.log("Fetch", id, tweetinfo.info["hashVal"]);
+
+                        const digestBuffer = await digestMessage(tweetinfo.info["hashVal"]);
+                        let hash = tweetinfo.info["site"] + "_" + digestBuffer;
+                        let response = await apiRequestServiceWorker('GET', '/reports/' + hash);
+                        console.log(id, "AWAIT RESPONSE", response);
+
+                        if (response && response.data) {
+                            let max_ratio = [0.0, 0.0, 0.0, 0.0];
+                            let upvotes = [0, 0, 0, 0];
+
+                            let category_text = ["", "", "", ""];
+
+                            console.log("REPORTS RECEIVED", id, response);
+                            response.data.forEach((reports, _) => {
+                                for (let i = 0;i < types.length;i++) {
+                                    if (reports.report_type === types[i]) {
+                                        upvotes[i] += reports.upvote;
+
+                                        if ((reports.upvote + reports.downvote) > threshold_votes) {
+                                            console.log("THRESHOLD", id, i, reports);
+                                            max_ratio[i] = Math.max(reports.upvote / (reports.downvote + reports.upvote), max_ratio[i]);
+                                            category_text[i] = reports.report_text;
+                                        }
+                                    }
+                                }
+                            });
+
+                            if ((prefs.misinformation && max_ratio[0] > remove_threshold)
+                                || (prefs.trigger && max_ratio[1] > remove_threshold)
+                                || (prefs.slop && max_ratio[2] > remove_threshold)
+                                || (prefs.epilepsy && max_ratio[3] > remove_threshold)
+                            ) {
+                                // hide post
+                                filtered_count += 1;
+
+                                tweetinfo.element.parentNode.removeChild(tweetinfo.element);
+                            } else {
+                                let flag_category = "none";
+                                let flag_text = "";
+                                let max_upvotes = 0;
+                                console.log("VALS", id, upvotes, category_text, types, remove_threshold);
+                                for (let i = 0;i < types.length;i++) {
+                                    if (max_ratio[i] > remove_threshold) {
+                                        if (upvotes[i] > max_upvotes) {
+                                            max_upvotes = upvotes[i];
+                                            flag_category = types[i];
+                                            flag_text = category_text[i];
+                                        }
+                                    }
+                                }
+                                console.log(id, flag_category, "FLAG1", max_ratio, max_upvotes);
+
+                                if (flag_category !== "none") {
+                                    // await addWarningUnderTweet(tweetElementMap.get(tweetId).element, flag_category);
+                                    console.log(id, flag_category, "FLAG")
+                                    await addTextBoxUnderTweet(
+                                        tweetinfo.element,
+                                        flag_category,
+                                        flag_text,
+                                        offset
+                                    );
+                                }
+                            }
+                        }
+                        updateFilteredCount(filtered_count);
                     }
                 }
 
@@ -362,8 +448,8 @@ async function processTweet(tweetElement, offset = false) {
                                     var deets = postDetails(mutation.target.getAttribute('href'))
                                     if (deets) {
                                         observer.disconnect()
-                                        console.log(deets)
-                                        addReportButtonToTweet(tweetElement, deets, offset)
+                                        console.log("HELP ME NOW", deets);
+                                        await addReportButtonToTweet(tweetElement, deets, offset)
                                         // await addTextBoxUnderTweet(
                                         //     tweetElement,
                                         //     "misinformation",
@@ -378,6 +464,90 @@ async function processTweet(tweetElement, offset = false) {
                                                 info: deets
                                             }
                                         );
+
+                                        let filtered_count = 0;
+
+                                        console.log("DOES IT EVEN GET HERE", tweetElementMap.size);
+
+                                        console.log("DOES IT EVEN GET HERE 2");
+                                        // For every tweet in the list, query the server for a list of reports concerning the tweet
+                                        let types = ["misinformation", "trigger", "slop", "epilepsy"];
+                                        let threshold_votes = 5;
+                                        let remove_threshold = 0.6;
+                                        let id = deets.hashVal;
+
+                                        let prefs = await getContentPreferences();
+
+                                        let tweetinfo = {
+                                            element: tweetElement,
+                                            info: deets
+                                        };
+                                        console.log("Fetch", id, tweetinfo.info["hashVal"]);
+
+                                        const digestBuffer = await digestMessage(tweetinfo.info["hashVal"]);
+                                        let hash = tweetinfo.info["site"] + "_" + digestBuffer;
+                                        let response = await apiRequestServiceWorker('GET', '/reports/' + hash);
+                                        console.log(id, "AWAIT RESPONSE", response);
+
+                                        if (response && response.data) {
+                                            let max_ratio = [0.0, 0.0, 0.0, 0.0];
+                                            let upvotes = [0, 0, 0, 0];
+
+                                            let category_text = ["", "", "", ""];
+
+                                            console.log("REPORTS RECEIVED", id, response);
+                                            response.data.forEach((reports, _) => {
+                                                for (let i = 0;i < types.length;i++) {
+                                                    if (reports.report_type === types[i]) {
+                                                        upvotes[i] += reports.upvote;
+
+                                                        if ((reports.upvote + reports.downvote) > threshold_votes) {
+                                                            console.log("THRESHOLD", id, i, reports);
+                                                            max_ratio[i] = Math.max(reports.upvote / (reports.downvote + reports.upvote), max_ratio[i]);
+                                                            category_text[i] = reports.report_text;
+                                                        }
+                                                    }
+                                                }
+                                            });
+
+                                            if ((prefs.misinformation && max_ratio[0] > remove_threshold)
+                                                || (prefs.trigger && max_ratio[1] > remove_threshold)
+                                                || (prefs.slop && max_ratio[2] > remove_threshold)
+                                                || (prefs.epilepsy && max_ratio[3] > remove_threshold)
+                                            ) {
+                                                // hide post
+                                                filtered_count += 1;
+
+                                                tweetinfo.element.parentNode.removeChild(tweetinfo.element);
+                                            } else {
+                                                let flag_category = "none";
+                                                let flag_text = "";
+                                                let max_upvotes = 0;
+                                                console.log("VALS", id, upvotes, category_text, types, remove_threshold);
+                                                for (let i = 0;i < types.length;i++) {
+                                                    if (max_ratio[i] > remove_threshold) {
+                                                        if (upvotes[i] > max_upvotes) {
+                                                            max_upvotes = upvotes[i];
+                                                            flag_category = types[i];
+                                                            flag_text = category_text[i];
+                                                        }
+                                                    }
+                                                }
+                                                console.log(id, flag_category, "FLAG1", max_ratio, max_upvotes);
+
+                                                if (flag_category !== "none") {
+                                                    // await addWarningUnderTweet(tweetElementMap.get(tweetId).element, flag_category);
+                                                    console.log(id, flag_category, "FLAG")
+                                                    await addTextBoxUnderTweet(
+                                                        tweetinfo.element,
+                                                        flag_category,
+                                                        flag_text,
+                                                        offset
+                                                    );
+                                                }
+                                            }
+                                        }
+                                        updateFilteredCount(filtered_count);
                                     }
                                 }
 
@@ -399,83 +569,6 @@ async function processTweet(tweetElement, offset = false) {
         // pass in the target node, as well as the observer options
         observer.observe(tweetElement, config);
 
-    }
-
-    let filtered_count = 0;
-
-    if (tweetElementMap.size > 0) {
-        // For every tweet in the list, query the server for a list of reports concerning the tweet
-        let types = ["misinformation", "trigger", "slop", "epilepsy"];
-        let threshold_votes = 5;
-        let remove_threshold = 0.6;
-
-        let prefs = await getContentPreferences();
-
-        for (id of tweetElementMap.keys()) {
-            let tweetinfo = tweetElementMap.get(id);
-
-            const digestBuffer = await digestMessage(tweetinfo.info["hashVal"]);
-            let hash = tweetinfo.info["site"] + "_" + digestBuffer;
-            let response = await apiRequestServiceWorker('GET', '/reports/' + hash);
-
-            if (response && response.data) {
-                let max_ratio = [0.0, 0.0, 0.0, 0.0];
-                let upvotes = [0, 0, 0, 0];
-
-                let category_text = ["", "", "", ""];
-
-                response.data.forEach((reports, _) => {
-                    for (let i = 0;i < types.length;i++) {
-                        if (reports.report_type === types[i]) {
-                            upvotes[i] += reports.upvote;
-
-                            if ((reports.upvote + reports.downvote) > threshold_votes) {
-                                max_ratio[i] = Math.max(reports.upvote / (reports.downvote + reports.upvote), max_ratio[i]);
-                                category_text[i] = reports.report_text;
-                            }
-                        }
-                    }
-                });
-
-                if ((prefs.misinformation && max_ratio[0] > remove_threshold)
-                    || (prefs.trigger && max_ratio[1] > remove_threshold)
-                    || (prefs.slop && max_ratio[2] > remove_threshold)
-                    || (prefs.epilepsy && max_ratio[3] > remove_threshold)
-                ) {
-                    // hide post
-                    filtered_count += 1;
-
-                    tweetinfo.element.parentNode.removeChild(tweetinfo.element);
-                } else {
-                    let flag_category = "none";
-                    let flag_text = "";
-                    let max_upvotes = 0;
-                    for (let i = 0;i < types.length;i++) {
-                        if (max_ratio[i] > remove_threshold) {
-                            if (upvotes[i] > max_upvotes) {
-                                max_upvotes = upvotes[i];
-                                flag_category = types[i];
-                                flag_text = category_text[i];
-                            }
-                        }
-                    }
-
-                    if (flag_category !== "none") {
-                        // await addWarningUnderTweet(tweetElementMap.get(tweetId).element, flag_category);
-                        await addTextBoxUnderTweet(
-                            tweetElementMap.get(tweetId).element,
-                            flag_category,
-                            flag_text,
-                            offset
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    if (filtered_count > 0) {
-        updateFilteredCount(filtered_count);
     }
 }
 
@@ -701,6 +794,7 @@ function initialize() {
     console.log("started")
     initializeObservers();
     setupURLMonitoring();
+    initializeCountUpdates();
 }
 
 if (document.readyState === "loading") {
