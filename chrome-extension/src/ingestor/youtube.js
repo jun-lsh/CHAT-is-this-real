@@ -4,10 +4,61 @@ const vidRecTag = "YTD-COMPACT-VIDEO-RENDERER";
 const vidMainTag = "YTD-RICH-GRID-MEDIA";
 const vidSearchTag = "YTD-VIDEO-RENDERER";
 
-
 const vidPlaylistTag = "YT-LOCKUP-VIEW-MODEL";
 const vidShortTag1 = "YTM-SHORTS-LOCKUP-VIEW-MODEL";
 const vidShortTag2 = "YTM-SHORTS-LOCKUP-VIEW-MODEL-V2";
+
+// Global variable to track filtered count between updates
+let globalFilteredCount = 0;
+
+// Function to update the filtered count
+function updateFilteredCount(additionalCount = 0) {
+    globalFilteredCount += additionalCount;
+    const site_key = window.location.href;
+
+    // Update storage with accumulated count
+    chrome.storage.sync.get([site_key]).then((result) => {
+        console.log("Current count for site:", result[site_key]);
+
+        let dataobj = {};
+        if (result[site_key]) {
+            dataobj[site_key] = result[site_key] + globalFilteredCount;
+        } else {
+            dataobj[site_key] = globalFilteredCount;
+        }
+
+        chrome.storage.sync.set(dataobj).then(() => {
+            console.log("Updated filtered count in storage:", dataobj[site_key]);
+            // Reset global counter after successful update
+            globalFilteredCount = 0;
+        }).catch((error) => {
+            console.error("Error updating filtered count:", error);
+        });
+    }).catch((error) => {
+        console.error("Error reading current count:", error);
+    });
+}
+
+// Function to start periodic updates
+function startPeriodicUpdates(intervalInMs = 1000) { // Default 30 seconds
+    // Initial update
+    updateFilteredCount();
+
+    // Set up periodic updates
+    return setInterval(() => {
+        updateFilteredCount();
+    }, intervalInMs);
+}
+
+// Function to stop periodic updates
+function stopPeriodicUpdates(intervalId) {
+    if (intervalId) {
+        clearInterval(intervalId);
+        // Final update to ensure no counts are lost
+        updateFilteredCount();
+    }
+}
+
 
 function isRecommendation(node) {
     return (
@@ -32,11 +83,57 @@ function addReportInfo() {
         return;
     }
 
+    let url = document.URL;
+
     (async () => {
-        const createWarning = createWarningElement(
-            "misinformation",
-            "This post has been identified as containing potential misinformation."
-        );
+        // For every tweet in the list, query the server for a list of reports concerning the tweet
+        let types = ["misinformation", "trigger", "slop", "epilepsy"];
+        let threshold_votes = 5;
+        let remove_threshold = 8.0;
+
+        let prefs = await getContentPreferences();
+
+        const digestBuffer = await digestMessage(url);
+        let hash = "yt" + "_" + digestBuffer;
+        let response = await apiRequestServiceWorker("GET", "/reports/" + hash);
+        
+        if (!response || !response.data) return
+
+        let max_ratio = [0.0, 0.0, 0.0, 0.0];
+        let upvotes = [0, 0, 0, 0];
+
+        let category_text = ["", "", "", ""];
+
+        response.data.forEach((reports, _) => {
+            for (let i = 0;i < types.length;i++) {
+                if (reports.report_type === types[i]) {
+                    upvotes[i] += reports.upvote;
+
+                    if ((reports.upvote + reports.downvote) > threshold_votes) {
+                        max_ratio[i] = Math.max(reports.upvote / (reports.downvote + reports.upvote), max_ratio[i]);
+                        category_text[i] = reports.report_text;
+                    }
+                }
+            }
+        });
+
+        let flag_category = "none";
+        let flag_text = "";
+        let max_upvotes = 0;
+        for (let i = 0; i < types.length; i++) {
+            if (max_ratio[i] > remove_threshold) {
+                if (upvotes[i] > max_upvotes) {
+                    max_upvotes = upvotes[i];
+                    flag_category = types[i];
+                    flag_text = category_text[i];
+                }
+            }
+        }
+
+        // flag_category = "slop"
+        if (flag_category == "none") return;
+
+        const createWarning = createWarningElement(flag_category);
         const warning = await createWarning();
         console.log("WARNIG", warning);
         midbar.appendChild(warning);
@@ -121,6 +218,76 @@ function addMenu() {
     button.addEventListener("click", showPopup);
     menubar.appendChild(button);
 }
+
+async function processThumbnail(thumbnailElement) {
+    console.log("Processing", thumbnailElement);
+    let url = thumbnailElement.querySelector("a").href;
+
+    // For every tweet in the list, query the server for a list of reports concerning the tweet
+    let types = ["misinformation", "trigger", "slop", "epilepsy"];
+    let threshold_votes = 5;
+    let remove_threshold = 8.0;
+
+    let prefs = await getContentPreferences();
+
+    const digestBuffer = await digestMessage(url);
+    let hash = "yt" + "_" + digestBuffer;
+    let response = await apiRequestServiceWorker('GET', '/reports/' + hash);
+
+    if (response && response.data) {
+        let max_ratio = [0.0, 0.0, 0.0, 0.0];
+        let upvotes = [0, 0, 0, 0];
+
+        let category_text = ["", "", "", ""];
+
+        response.data.forEach((reports, _) => {
+            for (let i = 0;i < types.length;i++) {
+                if (reports.report_type === types[i]) {
+                    upvotes[i] += reports.upvote;
+
+                    if ((reports.upvote + reports.downvote) > threshold_votes) {
+                        max_ratio[i] = Math.max(reports.upvote / (reports.downvote + reports.upvote), max_ratio[i]);
+                        category_text[i] = reports.report_text;
+                    }
+                }
+            }
+        });
+        
+        // max_ratio = [9, 0, 0, 0, 0];
+        // upvotes = [10, 0, 0, 0, 0];
+
+        if ((prefs.misinformation && max_ratio[0] > remove_threshold)
+            || (prefs.trigger && max_ratio[1] > remove_threshold)
+            || (prefs.slop && max_ratio[2] > remove_threshold)
+            || (prefs.epilepsy && max_ratio[3] > remove_threshold)
+        ) {
+            // hide post
+            updateFilteredCount(1);
+
+            thumbnailElement.parentNode.removeChild(thumbnailElement);
+        } else {
+            let flag_category = "none";
+            let flag_text = "";
+            let max_upvotes = 0;
+            for (let i = 0;i < types.length;i++) {
+                if (max_ratio[i] > remove_threshold) {
+                    if (upvotes[i] > max_upvotes) {
+                        max_upvotes = upvotes[i];
+                        flag_category = types[i];
+                        flag_text = category_text[i];
+                    }
+                }
+            }
+
+            console.log(flag_category);
+
+            if (flag_category !== "none") {
+                markThumbnail(thumbnailElement, flag_category)
+            }
+        }
+    }
+}
+
 
 
 function waitUntilTrue(predicate, interval = 500) {
@@ -245,7 +412,7 @@ function shieldElement() {
 
 const handleNewElement =  (element) => {
     if (element.tagName == vidRecTag || element.tagName == vidMainTag || element.tagName == vidSearchTag ) {
-        handleNewElement1(element);
+        processThumbnail(element);
     } else if (element.tagName == vidPlaylistTag) {
         handleNewElement2(element);
     } else if (element.tagName == vidShortTag1 || element.tagName == vidShortTag2) {
@@ -253,7 +420,8 @@ const handleNewElement =  (element) => {
     }
 }
 
-const handleNewElement1 = (element) => {
+const markThumbnail = (element, info) => {
+    console.log("MARK", element);
     (async () => {
         await waitUntilTrue(() => element?.querySelector("#thumbnail")?.querySelector("yt-image")?.querySelector("img")?.src)  
         
@@ -266,6 +434,19 @@ const handleNewElement1 = (element) => {
         img.setAttribute("width", "100%");
         img.setAttribute("height", "100%");
         img.setAttribute("z-index", 0)
+
+        if (info) {
+            let text = document.createElement("span");
+            text.textContent = info.toUpperCase();
+            text.style.fontWeight = "bold"
+            text.style.position = "absolute"
+            text.style.left = "50%"
+            text.style.top = "45%"
+            text.style.fontSize = element.tagName == vidRecTag ? "12px" : "20px";
+            text.style.color = "red"
+            text.style.transform = "translateX(-50%)";
+            ytimg.prepend(text);
+        }
         
         let svgwrapper = shieldElement();
 
@@ -346,15 +527,28 @@ const observer = new MutationObserver((mutationsList) => {
             // Handle attribute changes on <ytd-compact-video-renderer> elements
             console.log("MUT", mutation);
             if (mutation.target.tagName == vidPlaylistTag) {
-                handleNewElement2(mutation.target)
+                // handleNewElement2(mutation.target)
             }
         }
     });
 });
 
+let updateIntervalId;
+
+function initializeCountUpdates() {
+    // Start periodic updates every 30 seconds
+    updateIntervalId = startPeriodicUpdates(1000);
+
+    // Add cleanup on window unload
+    window.addEventListener("unload", () => {
+        stopPeriodicUpdates(updateIntervalId);
+    });
+}
+
 function initialize() {
     addReportInfo();
     addMenu();
+    initializeCountUpdates();
 
     // Start observing the document
     observer.observe(document.body, {
