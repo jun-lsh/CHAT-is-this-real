@@ -71,30 +71,31 @@ function isRecommendation(node) {
     );
 }
 
-function isBad(url) {
-    return true
-}
-
-function addReportInfo() {
+function setReportInfo() {
     console.log("addReportInfo");
     let midbar = document.querySelector("#middle-row");
     if (!midbar) {
-        setTimeout(addReportInfo, 1000);
+        setTimeout(setReportInfo, 1000);
         return;
     }
 
-    let url = document.URL;
+    midbar.innerHTML = "";
+
+    console.log("URL", window.location.href);
+    let url = neutraliseUrl(window.location.href);
+    console.log("URL", url); // https://www.youtube.com/watch?v=ZFwYLpvmi5o
 
     (async () => {
         // For every tweet in the list, query the server for a list of reports concerning the tweet
         let types = ["misinformation", "trigger", "slop", "epilepsy"];
         let threshold_votes = 5;
-        let remove_threshold = 8.0;
+        let remove_threshold = 0.6;
 
         let prefs = await getContentPreferences();
 
         const digestBuffer = await digestMessage(url);
         let hash = "yt" + "_" + digestBuffer;
+        console.log("HASH", hash);
         let response = await apiRequestServiceWorker("GET", "/reports/" + hash);
         
         if (!response || !response.data) return
@@ -130,26 +131,35 @@ function addReportInfo() {
             }
         }
 
+        console.log("HASH CAT", flag_category);
+
         // flag_category = "slop"
         if (flag_category == "none") return;
 
-        const createWarning = createWarningElement(flag_category);
+        const createWarning = createWarningElement(flag_category, flag_text);
         const warning = await createWarning();
         console.log("WARNIG", warning);
+        if (midbar.children.length != 0) {
+            midbar.children.forEach((e) => midbar.remove(e))
+        } 
         midbar.appendChild(warning);
     })();
 }
 
-function addMenu() {
+function setMenu() {
     let menubar = document.querySelector(
         "ytd-menu-renderer.style-scope.ytd-watch-metadata"
     );
 
     if (!menubar) {
-        setTimeout(addMenu, 1000);
+        setTimeout(setMenu, 1000);
         return;
     }
 
+    menubar
+        .querySelectorAll(".custom-button")
+        .forEach((button) => button.remove());
+    
     console.log(menubar);
 
     const button = document.createElement("button");
@@ -211,22 +221,27 @@ function addMenu() {
     button.appendChild(svg);
 
     const showPopup = createFormPopup({
-        hashVal: document.URL,
+        hashVal: neutraliseUrl(window.location.href),
         site: "yt",
-        display: document.title,
+        display: document.title
     });
     button.addEventListener("click", showPopup);
     menubar.appendChild(button);
 }
 
+function neutraliseUrl(url) {
+    let vID = new URL(url).searchParams.get("v");
+    return `https://www.youtube.com/watch?v=${vID}`;    
+}
+
 async function processThumbnail(thumbnailElement) {
     console.log("Processing", thumbnailElement);
-    let url = thumbnailElement.querySelector("a").href;
+    let url = neutraliseUrl(thumbnailElement.querySelector("a").href);
 
     // For every tweet in the list, query the server for a list of reports concerning the tweet
     let types = ["misinformation", "trigger", "slop", "epilepsy"];
     let threshold_votes = 5;
-    let remove_threshold = 8.0;
+    let remove_threshold = 0.6;
 
     let prefs = await getContentPreferences();
 
@@ -414,7 +429,7 @@ const handleNewElement =  (element) => {
     if (element.tagName == vidRecTag || element.tagName == vidMainTag || element.tagName == vidSearchTag ) {
         processThumbnail(element);
     } else if (element.tagName == vidPlaylistTag) {
-        handleNewElement2(element);
+        // handleNewElement2(element);
     } else if (element.tagName == vidShortTag1 || element.tagName == vidShortTag2) {
         
     }
@@ -546,8 +561,8 @@ function initializeCountUpdates() {
 }
 
 function initialize() {
-    addReportInfo();
-    addMenu();
+    setReportInfo();
+    setMenu();
     initializeCountUpdates();
 
     // Start observing the document
@@ -563,3 +578,8 @@ function initialize() {
 }
 
 initialize();
+
+window.navigation.addEventListener("navigatesuccess", (event) => {
+    setReportInfo();
+    setMenu();
+});
