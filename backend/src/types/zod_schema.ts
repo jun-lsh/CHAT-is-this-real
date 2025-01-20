@@ -1,4 +1,5 @@
 
+import { group } from 'console'
 import { z } from 'zod'
 
 // Define response schemas
@@ -22,6 +23,8 @@ const ReportSchema = z.object({
   report_text: z.string(),
   report_hash: z.string(),
   created_at: z.number(),
+  platform_name: z.string(),
+  report_type: z.string(),
 })
 
 // Request body schemas
@@ -74,4 +77,40 @@ const GetReportsWithHashSchema = z.object({
     })),
 })
 
-export { HelloResponseSchema, UserSchema, ReportSchema, ReportVoteSchema, CreateUserSchema, CreateReportSchema, CreateReportVoteSchema, GetReportVoteRatioSchema, GetReportsWithHashSchema }
+
+const GetUserGroupsSchema = z.object({
+    groups: z.array(z.object({
+        group_name: z.string(),
+        group_description: z.string(),
+    })),
+})
+
+
+const CreateUserGroupSchema = z.object({
+  group_name: z.string(),
+  group_description: z.string(),
+})
+
+
+const AddUserToGroupSchema = z.object({
+  pkey: z.string(),
+  group_name: z.string(),
+})
+
+
+
+const GetReportsByTypeSchema = z.object({
+  reports: z.array(
+    z.object({
+      type: z.string(),
+      count: z.number(),
+    })
+  ),
+})
+
+
+export { HelloResponseSchema, UserSchema, ReportSchema, ReportVoteSchema, CreateUserSchema, CreateReportSchema, CreateReportVoteSchema, GetReportVoteRatioSchema, GetReportsWithHashSchema, CreateUserGroupSchema, AddUserToGroupSchema, GetUserGroupsSchema, GetReportsByTypeSchema }
+
+
+
+

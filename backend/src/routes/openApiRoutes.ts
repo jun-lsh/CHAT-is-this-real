@@ -1,6 +1,6 @@
 import { createRoute } from '@hono/zod-openapi'
 import { z } from 'zod'
-import { HelloResponseSchema, UserSchema, ReportSchema, ReportVoteSchema, CreateUserSchema, CreateReportSchema, CreateReportVoteSchema, GetReportsWithHashSchema, GetReportVoteRatioSchema } from '../types/zod_schema'
+import { HelloResponseSchema, UserSchema, ReportSchema, ReportVoteSchema, CreateUserSchema, CreateReportSchema, CreateReportVoteSchema, GetReportsWithHashSchema, GetReportVoteRatioSchema, CreateUserGroupSchema, AddUserToGroupSchema, GetUserGroupsSchema, GetReportsByTypeSchema } from '../types/zod_schema'
 
 // Create routes with OpenAPI specs
 const getHelloRoute = createRoute({
@@ -202,9 +202,10 @@ const deleteUserRoute = createRoute({
 
 const deleteReportRoute = createRoute({
   method: 'delete',
-  path: '/reports/{hash}',
+  path: '/reports/{pkey}/{hash}',
   request: {
     params: z.object({
+      pkey: z.string(),
       hash: z.string(),
     })
   },
@@ -317,4 +318,84 @@ const getReportsWithHashRoute = createRoute({
 })
 
 
-export { getHelloRoute, getUsersRoute, getUserByIdRoute, getReportByIdRoute, getReportsRoute, createUserRoute, createReportRoute, deleteUserRoute, deleteReportRoute, getReportVotesRoute, createReportVoteRoute, getReportVoteRatioRoute, getReportsWithHashRoute }
+
+
+const createUserGroupRoute = createRoute({
+  method: 'post',
+  path: '/user_groups',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: CreateUserGroupSchema
+        }
+      }
+    }
+  },
+  responses: {
+    201: {
+      description: 'User group created successfully'
+    }
+  }
+})
+
+
+const addUserToGroupRoute = createRoute({
+  method: 'post',
+  path: '/add_user_to_group',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: AddUserToGroupSchema
+        }
+      }
+    }
+  },
+  responses: {
+    201: {
+      description: 'User added to group successfully'
+    }
+  }
+}) 
+
+
+const getUserGroupsRoute = createRoute({
+  method: 'get',
+  path: '/user_groups',
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: GetUserGroupsSchema
+        }
+      },
+      description: 'List of all user groups'
+    }
+  }
+})
+
+
+const getReportsByTypeRoute = createRoute({
+  method: 'get',
+  path: '/reports_by_type',
+  request: {
+    query: z.object({
+      type: z.string()
+    })
+
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: GetReportsByTypeSchema
+        }
+      },
+      description: 'List of all reports by type'
+    }
+  }
+})
+
+
+export { getHelloRoute, getUsersRoute, getUserByIdRoute, getReportByIdRoute, getReportsRoute, createUserRoute, createReportRoute, deleteUserRoute, deleteReportRoute, getReportVotesRoute, createReportVoteRoute, getReportVoteRatioRoute, getReportsWithHashRoute , createUserGroupRoute, addUserToGroupRoute, getUserGroupsRoute, getReportsByTypeRoute}
